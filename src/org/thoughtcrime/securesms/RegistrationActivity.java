@@ -22,12 +22,14 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.i18n.phonenumbers.AsYouTypeFormatter;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
+import org.thoughtcrime.securesms.additions.ChildContact;
+import org.thoughtcrime.securesms.additions.FileHelper;
+import org.thoughtcrime.securesms.additions.ParentsContact;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.util.Dialogs;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
@@ -45,22 +47,19 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
   private static final int PICK_COUNTRY = 1;
   private static final String TAG = RegistrationActivity.class.getSimpleName();
-
-  private enum PlayServicesStatus {
-    SUCCESS,
-    MISSING,
-    NEEDS_UPDATE,
-    TRANSIENT_ERROR
-  }
-
   private AsYouTypeFormatter   countryFormatter;
   private ArrayAdapter<String> countrySpinnerAdapter;
   private Spinner              countrySpinner;
   private TextView             countryCode;
   private TextView             number;
+  private TextView childFirstName;
+  private TextView childLastName;
+  private TextView parentsCountryCode;
+  private TextView parentsNumber;
+  private TextView parentFirstName;
+  private TextView parentLastName;
   private Button               createButton;
   private Button               skipButton;
-
   private MasterSecret masterSecret;
 
   @Override
@@ -89,11 +88,23 @@ public class RegistrationActivity extends BaseActionBarActivity {
     this.countrySpinner = (Spinner)findViewById(R.id.country_spinner);
     this.countryCode    = (TextView)findViewById(R.id.country_code);
     this.number         = (TextView)findViewById(R.id.number);
+    this.childFirstName = (TextView) findViewById(R.id.childFirstName);
+    this.childLastName = (TextView) findViewById(R.id.childLastName);
+    this.parentsCountryCode = (TextView) findViewById(R.id.parents_country_code);
+    this.parentsNumber = (TextView) findViewById(R.id.parents_number);
+    this.parentFirstName = (TextView) findViewById(R.id.parentFirstName);
+    this.parentLastName = (TextView) findViewById(R.id.parentLastName);
     this.createButton   = (Button)findViewById(R.id.registerButton);
     this.skipButton     = (Button)findViewById(R.id.skipButton);
 
     this.countryCode.addTextChangedListener(new CountryCodeChangedListener());
+    this.parentsCountryCode.addTextChangedListener(new CountryCodeChangedListener());
     this.number.addTextChangedListener(new NumberChangedListener());
+    this.childFirstName.addTextChangedListener(new NumberChangedListener());
+    this.childLastName.addTextChangedListener(new NumberChangedListener());
+    this.parentsNumber.addTextChangedListener(new NumberChangedListener());
+    this.parentFirstName.addTextChangedListener(new NumberChangedListener());
+    this.parentLastName.addTextChangedListener(new NumberChangedListener());
     this.createButton.setOnClickListener(new CreateButtonListener());
     this.skipButton.setOnClickListener(new CancelButtonListener());
 
@@ -191,46 +202,131 @@ public class RegistrationActivity extends BaseActionBarActivity {
                                            number.getText().toString());
   }
 
+  private String getConfguredE164ParentNumber() {
+    return PhoneNumberFormatter.formatE164(parentsCountryCode.getText().toString(),
+            parentsNumber.getText().toString());
+  }
+
+  private enum PlayServicesStatus {
+    SUCCESS,
+    MISSING,
+    NEEDS_UPDATE,
+    TRANSIENT_ERROR
+  }
+
   private class CreateButtonListener implements View.OnClickListener {
+    private FileHelper fHelper = new FileHelper();
     @Override
     public void onClick(View v) {
       final RegistrationActivity self = RegistrationActivity.this;
 
+      validateEntries(self);
+
+      final String e164number = getConfiguredE164Number();
+      final String e164parentNumber = getConfguredE164ParentNumber();
+
+      if (!PhoneNumberFormatter.isValidNumber(e164number)) {
+        Dialogs.showAlertDialog(self,
+                getString(R.string.RegistrationActivity_invalid_number),
+                String.format(getString(R.string.RegistrationActivity_the_number_you_specified_s_is_invalid),
+                        e164number));
+        return;
+      }
+
+      if (!PhoneNumberFormatter.isValidNumber(e164parentNumber)) {
+        Dialogs.showAlertDialog(self,
+                getString(R.string.RegistrationActivity_invalid_number),
+                String.format(getString(R.string.RegistrationActivity_the_number_you_specified_s_is_invalid),
+                        e164parentNumber));
+        return;
+      }
+
+      ParentsContact parentsContact = new ParentsContact(parentFirstName.getText().toString(), parentLastName.getText().toString(), e164parentNumber);
+      ChildContact child = new ChildContact(childFirstName.getText().toString(), childLastName.getText().toString(), e164number);
+      child.addParent(parentsContact);
+
+      saveNumberToFile(self, e164parentNumber);
+
+      String savedNumber = readNumberFromFile(self);
+
+      createVCard(self, child);
+
+      Toast.makeText(self, String.format("got number %s from pFile", savedNumber), Toast.LENGTH_LONG);
+      return;
+
+//      PlayServicesStatus gcmStatus = checkPlayServices(self);
+//
+//      if (gcmStatus == PlayServicesStatus.SUCCESS) {
+//        promptForRegistrationStart(self, e164number, true);
+//      } else if (gcmStatus == PlayServicesStatus.MISSING) {
+//        promptForNoPlayServices(self, e164number);
+//      } else if (gcmStatus == PlayServicesStatus.NEEDS_UPDATE) {
+//        GoogleApiAvailability.getInstance().getErrorDialog(self, ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED, 0);
+//      } else {
+//        Dialogs.showAlertDialog(self, getString(R.string.RegistrationActivity_play_services_error),
+//                                getString(R.string.RegistrationActivity_google_play_services_is_updating_or_unavailable));
+//      }
+    }
+
+    private void createVCard(RegistrationActivity context, ChildContact child) {
+      fHelper.writeNumberToFile(context, child.toString(), fHelper.vCardFileName);
+    }
+
+    private void validateEntries(final RegistrationActivity self) {
       if (TextUtils.isEmpty(countryCode.getText())) {
         Toast.makeText(self,
-                       getString(R.string.RegistrationActivity_you_must_specify_your_country_code),
-                       Toast.LENGTH_LONG).show();
+                getString(R.string.RegistrationActivity_you_must_specify_your_country_code),
+                Toast.LENGTH_LONG).show();
+        return;
+      }
+
+      if (TextUtils.isEmpty(parentsCountryCode.getText())) {
+        Toast.makeText(self,
+                "You must specify your country code",
+                Toast.LENGTH_LONG).show();
         return;
       }
 
       if (TextUtils.isEmpty(number.getText())) {
         Toast.makeText(self,
-                       getString(R.string.RegistrationActivity_you_must_specify_your_phone_number),
-                       Toast.LENGTH_LONG).show();
+                getString(R.string.RegistrationActivity_you_must_specify_your_phone_number),
+                Toast.LENGTH_LONG).show();
         return;
       }
 
-      final String e164number = getConfiguredE164Number();
-
-      if (!PhoneNumberFormatter.isValidNumber(e164number)) {
-        Dialogs.showAlertDialog(self,
-                             getString(R.string.RegistrationActivity_invalid_number),
-                             String.format(getString(R.string.RegistrationActivity_the_number_you_specified_s_is_invalid),
-                                           e164number));
+      if (TextUtils.isEmpty(childFirstName.getText())) {
+        Toast.makeText(self,
+                "You must enter the first name",
+                Toast.LENGTH_LONG).show();
         return;
       }
 
-      PlayServicesStatus gcmStatus = checkPlayServices(self);
+      if (TextUtils.isEmpty(childLastName.getText())) {
+        Toast.makeText(self,
+                "You must enter the last name",
+                Toast.LENGTH_LONG).show();
+        return;
+      }
 
-      if (gcmStatus == PlayServicesStatus.SUCCESS) {
-        promptForRegistrationStart(self, e164number, true);
-      } else if (gcmStatus == PlayServicesStatus.MISSING) {
-        promptForNoPlayServices(self, e164number);
-      } else if (gcmStatus == PlayServicesStatus.NEEDS_UPDATE) {
-        GoogleApiAvailability.getInstance().getErrorDialog(self, ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED, 0).show();
-      } else {
-        Dialogs.showAlertDialog(self, getString(R.string.RegistrationActivity_play_services_error),
-                                getString(R.string.RegistrationActivity_google_play_services_is_updating_or_unavailable));
+      if (TextUtils.isEmpty(parentFirstName.getText())) {
+        Toast.makeText(self,
+                "You must enter the first name of parent",
+                Toast.LENGTH_LONG).show();
+        return;
+      }
+
+      if (TextUtils.isEmpty(parentLastName.getText())) {
+        Toast.makeText(self,
+                "You must enter the last name of parent",
+                Toast.LENGTH_LONG).show();
+        return;
+      }
+
+      if (TextUtils.isEmpty(parentsNumber.getText())) {
+        Toast.makeText(self,
+                getString(R.string.RegistrationActivity_you_must_specify_your_phone_number),
+                Toast.LENGTH_LONG).show();
+        return;
       }
     }
 
@@ -252,6 +348,15 @@ public class RegistrationActivity extends BaseActionBarActivity {
                                });
       dialog.setNegativeButton(getString(R.string.RegistrationActivity_edit), null);
       dialog.show();
+    }
+
+    private void saveNumberToFile(final Context context, final String e164number) {
+      fHelper.writeNumberToFile(context, e164number, fHelper.parentsFileName);
+      fHelper.writeNumberToFile(context, e164number, fHelper.contactsFileName);
+    }
+
+    private String readNumberFromFile(final Context context) {
+      return fHelper.readDataFromFile(context, fHelper.parentsFileName);
     }
 
     private void promptForNoPlayServices(final Context context, final String e164number) {
@@ -323,6 +428,25 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
+    }
+  }
+
+  private class NameChangedListener implements TextWatcher {
+    @Override
+    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+      if (TextUtils.isEmpty(s)) {
+        return;
+      }
     }
   }
 
