@@ -252,20 +252,19 @@ public class RegistrationActivity extends BaseActionBarActivity {
       createVCard(self, child);
 
       Toast.makeText(self, String.format("got number %s from pFile", savedNumber), Toast.LENGTH_LONG);
-      return;
 
-//      PlayServicesStatus gcmStatus = checkPlayServices(self);
-//
-//      if (gcmStatus == PlayServicesStatus.SUCCESS) {
-//        promptForRegistrationStart(self, e164number, true);
-//      } else if (gcmStatus == PlayServicesStatus.MISSING) {
-//        promptForNoPlayServices(self, e164number);
-//      } else if (gcmStatus == PlayServicesStatus.NEEDS_UPDATE) {
-//        GoogleApiAvailability.getInstance().getErrorDialog(self, ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED, 0);
-//      } else {
-//        Dialogs.showAlertDialog(self, getString(R.string.RegistrationActivity_play_services_error),
-//                                getString(R.string.RegistrationActivity_google_play_services_is_updating_or_unavailable));
-//      }
+      PlayServicesStatus gcmStatus = checkPlayServices(self);
+
+      if (gcmStatus == PlayServicesStatus.SUCCESS) {
+        promptForRegistrationStart(self, e164number, true);
+      } else if (gcmStatus == PlayServicesStatus.MISSING) {
+        promptForNoPlayServices(self, e164number);
+      } else if (gcmStatus == PlayServicesStatus.NEEDS_UPDATE) {
+        GoogleApiAvailability.getInstance().getErrorDialog(self, ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED, 0);
+      } else {
+        Dialogs.showAlertDialog(self, getString(R.string.RegistrationActivity_play_services_error),
+                getString(R.string.RegistrationActivity_google_play_services_is_updating_or_unavailable));
+      }
     }
 
     private void createVCard(RegistrationActivity context, ChildContact child) {

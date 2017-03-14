@@ -11,6 +11,7 @@ public class ChildContact extends Contact {
 
     public ChildContact(String firstName, String lastName, String mobileNumber) {
         super(firstName, lastName, mobileNumber);
+        this.parents = new ArrayList<ParentsContact>();
     }
 
     public ArrayList<ParentsContact> getParents() {

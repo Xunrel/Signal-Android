@@ -75,7 +75,8 @@ public class ScanningThread extends Thread implements CameraView.PreviewCallback
       ScanListener scanListener = this.scanListener.get();
 
       if (data != null && scanListener != null) {
-        scanListener.onQrDataFound(data);
+//        scanListener.onQrDataFound(data);
+        scanListener.onQrDataFound("tsdevice:/?uuid=e0hjw41rcgiqaqmb4zlKuw&pub_key=BcB7b25JK2qfj6H%2FzpfE%2FQ7FV1ExDZfMbnOz6xF4QuBj");
         return;
       }
     }
