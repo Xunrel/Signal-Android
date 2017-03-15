@@ -9,12 +9,12 @@ public class ParentsContact extends Contact {
         super(firstName, lastName, mobileNumber);
     }
 
-    @Override
-    public String toString() {
-        return "ParentsContact{" +
-                "firstName='" + super.getFirstName() + '\'' +
-                ", lastName='" + super.getLastName() + '\'' +
-                ", mobileNumber='" + super.getMobileNumber() +
-                "}";
+    public ParentsContact() {
+    }
+
+    public ParentsContact(ParentsContact parentsContact) {
+        this.setFirstName(parentsContact.getFirstName());
+        this.setLastName(parentsContact.getLastName());
+        this.setMobileNumber(parentsContact.getMobileNumber());
     }
 }

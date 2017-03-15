@@ -9,6 +9,9 @@ public abstract class Contact {
     private String lastName;
     private String mobileNumber;
 
+    public Contact() {
+    }
+
     public Contact(String firstName, String lastName, String mobileNumber) {
         this.firstName = firstName;
         this.lastName = lastName;

@@ -264,7 +264,9 @@ public class RegistrationService extends Service {
 
     TextSecurePreferences.setWebsocketRegistered(this, true);
 
+    // TODO: Hier wird die eigene Identity in der DB gespeichert
     DatabaseFactory.getIdentityDatabase(this).saveIdentity(self.getRecipientId(), identityKey.getPublicKey());
+    // TODO: Update der Kontaktliste
     DirectoryHelper.refreshDirectory(this, accountManager, number);
 
     if (supportsGcm) {
@@ -349,20 +351,6 @@ public class RegistrationService extends Service {
     this.registrationStateHandler = new WeakReference<>(registrationStateHandler);
   }
 
-  public class RegistrationServiceBinder extends Binder {
-    public RegistrationService getService() {
-      return RegistrationService.this;
-    }
-  }
-
-  private class ChallengeReceiver extends BroadcastReceiver {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      Log.w("RegistrationService", "Got a challenge broadcast...");
-      challengeReceived(intent.getStringExtra(CHALLENGE_EXTRA));
-    }
-  }
-
   public static class RegistrationState {
 
     public static final int STATE_IDLE                 =  0;
@@ -398,6 +386,20 @@ public class RegistrationService extends Service {
       this.state        = state;
       this.number       = number;
       this.password     = password;
+    }
+  }
+
+  public class RegistrationServiceBinder extends Binder {
+    public RegistrationService getService() {
+      return RegistrationService.this;
+    }
+  }
+
+  private class ChallengeReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      Log.w("RegistrationService", "Got a challenge broadcast...");
+      challengeReceived(intent.getStringExtra(CHALLENGE_EXTRA));
     }
   }
 }

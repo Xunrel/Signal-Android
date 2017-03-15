@@ -32,9 +32,12 @@ import org.thoughtcrime.securesms.additions.FileHelper;
 import org.thoughtcrime.securesms.additions.ParentsContact;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.util.Dialogs;
+import org.thoughtcrime.securesms.util.JsonUtils;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
+
+import java.io.IOException;
 
 /**
  * The register account activity.  Prompts ths user for their registration information
@@ -268,7 +271,14 @@ public class RegistrationActivity extends BaseActionBarActivity {
     }
 
     private void createVCard(RegistrationActivity context, ChildContact child) {
-      fHelper.writeNumberToFile(context, child.toString(), fHelper.vCardFileName);
+      String jsonChild = "";
+      try {
+        jsonChild = JsonUtils.toJson(child);
+        fHelper.writeNumberToFile(context, jsonChild, fHelper.vCardFileName);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
     }
 
     private void validateEntries(final RegistrationActivity self) {

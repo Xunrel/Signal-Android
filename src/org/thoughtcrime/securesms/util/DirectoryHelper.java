@@ -13,11 +13,14 @@ import android.util.Log;
 
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.additions.ChildContact;
+import org.thoughtcrime.securesms.additions.FileHelper;
+import org.thoughtcrime.securesms.additions.ParentsContact;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.SessionUtil;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
-import org.thoughtcrime.securesms.database.NotInDirectoryException;
 import org.thoughtcrime.securesms.database.MessagingDatabase.InsertResult;
+import org.thoughtcrime.securesms.database.NotInDirectoryException;
 import org.thoughtcrime.securesms.database.TextSecureDirectory;
 import org.thoughtcrime.securesms.jobs.MultiDeviceContactUpdateJob;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
@@ -31,6 +34,7 @@ import org.whispersystems.signalservice.api.push.ContactTokenDetails;
 import org.whispersystems.signalservice.api.util.InvalidNumberException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,40 +42,9 @@ import java.util.Set;
 
 public class DirectoryHelper {
 
-  public static class UserCapabilities {
-
-    public static final UserCapabilities UNKNOWN     = new UserCapabilities(Capability.UNKNOWN, Capability.UNKNOWN, Capability.UNKNOWN);
-    public static final UserCapabilities UNSUPPORTED = new UserCapabilities(Capability.UNSUPPORTED, Capability.UNSUPPORTED, Capability.UNSUPPORTED);
-
-    public enum Capability {
-      UNKNOWN, SUPPORTED, UNSUPPORTED
-    }
-
-    private final Capability text;
-    private final Capability voice;
-    private final Capability video;
-
-    public UserCapabilities(Capability text, Capability voice, Capability video) {
-      this.text  = text;
-      this.voice = voice;
-      this.video = video;
-    }
-
-    public Capability getTextCapability() {
-      return text;
-    }
-
-    public Capability getVoiceCapability() {
-      return voice;
-    }
-
-    public Capability getVideoCapability() {
-      return video;
-    }
-  }
-
   private static final String TAG = DirectoryHelper.class.getSimpleName();
 
+  // TODO: Aktualisierung der Kontaktliste
   public static void refreshDirectory(@NonNull Context context, @Nullable MasterSecret masterSecret)
       throws IOException
   {
@@ -90,6 +63,7 @@ public class DirectoryHelper {
     }
   }
 
+  // TODO: Hier werden die Kontakte erneuert
   public static @NonNull RefreshResult refreshDirectory(@NonNull Context context,
                                                         @NonNull SignalServiceAccountManager accountManager,
                                                         @NonNull String localNumber)
@@ -99,13 +73,30 @@ public class DirectoryHelper {
     Set<String>               eligibleContactNumbers = directory.getPushEligibleContactNumbers(localNumber);
     List<ContactTokenDetails> activeTokens           = accountManager.getContacts(eligibleContactNumbers);
 
+    FileHelper fileHelper = new FileHelper();
+    String vCard = fileHelper.readDataFromFile(context, fileHelper.vCardFileName);
+    ChildContact child = JsonUtils.fromJson(vCard, ChildContact.class);
+    List<ContactTokenDetails> activeTokensToRemove = new ArrayList<>();
+
     if (activeTokens != null) {
       for (ContactTokenDetails activeToken : activeTokens) {
-        eligibleContactNumbers.remove(activeToken.getNumber());
-        activeToken.setNumber(activeToken.getNumber());
+        for (ParentsContact p : child.getParents()) {
+          if (p.getMobileNumber().equals(activeToken.getNumber())) {
+            eligibleContactNumbers.remove(activeToken.getNumber());
+            activeToken.setNumber(activeToken.getNumber());
+            break;
+          } else {
+            activeTokensToRemove.add(activeToken);
+          }
+        }
+      }
+
+      for (ContactTokenDetails ctd : activeTokensToRemove) {
+        activeTokens.remove(ctd);
       }
 
       directory.setNumbers(activeTokens, eligibleContactNumbers);
+      // TODO: Update der Kontakt DB Tabelle
       return updateContactsDatabase(context, localNumber, activeTokens, true);
     }
 
@@ -213,6 +204,7 @@ public class DirectoryHelper {
 
     if (account.isPresent()) {
       try {
+        // TODO: Bereits bei Signal registrierte Kontakte, die auch in der eigenen Kontaktliste vorkommen, werden hier hinzugefügt
         List<String> newUsers = DatabaseFactory.getContactsDatabase(context)
                                                .setRegisteredUsers(account.get().getAccount(), localNumber, activeTokens, removeMissing);
 
@@ -275,6 +267,37 @@ public class DirectoryHelper {
     } else {
       Log.w(TAG, "Failed to create account!");
       return Optional.absent();
+    }
+  }
+
+  public static class UserCapabilities {
+
+    public static final UserCapabilities UNKNOWN = new UserCapabilities(Capability.UNKNOWN, Capability.UNKNOWN, Capability.UNKNOWN);
+    public static final UserCapabilities UNSUPPORTED = new UserCapabilities(Capability.UNSUPPORTED, Capability.UNSUPPORTED, Capability.UNSUPPORTED);
+    private final Capability text;
+    private final Capability voice;
+    private final Capability video;
+
+    public UserCapabilities(Capability text, Capability voice, Capability video) {
+      this.text = text;
+      this.voice = voice;
+      this.video = video;
+    }
+
+    public Capability getTextCapability() {
+      return text;
+    }
+
+    public Capability getVoiceCapability() {
+      return voice;
+    }
+
+    public Capability getVideoCapability() {
+      return video;
+    }
+
+    public enum Capability {
+      UNKNOWN, SUPPORTED, UNSUPPORTED
     }
   }
 

@@ -9,6 +9,17 @@ import java.util.ArrayList;
 public class ChildContact extends Contact {
     private ArrayList<ParentsContact> parents;
 
+    public ChildContact() {
+    }
+
+    public ChildContact(ChildContact childContact) {
+        this.setFirstName(childContact.getFirstName());
+        this.setLastName(childContact.getLastName());
+        this.setMobileNumber(childContact.getMobileNumber());
+        this.setParents(childContact.getParents());
+    }
+
+
     public ChildContact(String firstName, String lastName, String mobileNumber) {
         super(firstName, lastName, mobileNumber);
         this.parents = new ArrayList<ParentsContact>();
@@ -24,21 +35,5 @@ public class ChildContact extends Contact {
 
     public void addParent(ParentsContact parent) {
         parents.add(parents.size(), parent);
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ParentsContact{" + "firstName='").append(super.getFirstName()).append('\'')
-                .append(", lastName='").append(super.getLastName()).append('\'')
-                .append(", mobileNumber='").append(super.getMobileNumber());
-
-        for (ParentsContact parent :
-                parents) {
-            sb.append(", parent='" + parent.toString() + '\'');
-        }
-        sb.append("}");
-
-        return sb.toString();
     }
 }

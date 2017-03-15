@@ -54,28 +54,26 @@ import java.util.Map;
  */
 public class ContactsDatabase {
 
-  private static final String TAG              = ContactsDatabase.class.getSimpleName();
-  private static final String CONTACT_MIMETYPE = "vnd.android.cursor.item/vnd.org.thoughtcrime.securesms.contact";
-  private static final String CALL_MIMETYPE    = "vnd.android.cursor.item/vnd.org.thoughtcrime.securesms.call";
-  private static final String SYNC             = "__TS";
-
   static final String ID_COLUMN           = "_id";
   static final String NAME_COLUMN         = "name";
   static final String NUMBER_COLUMN       = "number";
   static final String NUMBER_TYPE_COLUMN  = "number_type";
   static final String LABEL_COLUMN        = "label";
   static final String CONTACT_TYPE_COLUMN = "contact_type";
-
   static final int NORMAL_TYPE = 0;
   static final int PUSH_TYPE   = 1;
   static final int NEW_TYPE    = 2;
-
+    private static final String TAG = ContactsDatabase.class.getSimpleName();
+    private static final String CONTACT_MIMETYPE = "vnd.android.cursor.item/vnd.org.thoughtcrime.securesms.contact";
+    private static final String CALL_MIMETYPE = "vnd.android.cursor.item/vnd.org.thoughtcrime.securesms.call";
+    private static final String SYNC = "__TS";
   private final Context context;
 
   public ContactsDatabase(Context context) {
     this.context  = context;
   }
 
+    // TODO: Bereits bei Signal registrierte Benutzer dieses Kontaktes werden hinzugefügt
   public synchronized @NonNull List<String> setRegisteredUsers(@NonNull Account account,
                                                                @NonNull String localNumber,
                                                                @NonNull List<ContactTokenDetails> registeredContacts,
