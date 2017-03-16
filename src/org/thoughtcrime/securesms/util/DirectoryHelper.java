@@ -78,8 +78,14 @@ public class DirectoryHelper {
     ChildContact child = JsonUtils.fromJson(vCard, ChildContact.class);
     List<ContactTokenDetails> activeTokensToRemove = new ArrayList<>();
 
+      // TODO: use the following lines to read from whitelist
+//    String whiteListContent = fileHelper.readDataFromFile(context, fileHelper.whiteListFileName);
+//    ArrayList<String> whiteListNumbers = JsonUtils.fromJson(whiteListContent, ArrayList.class);
+
     if (activeTokens != null) {
       for (ContactTokenDetails activeToken : activeTokens) {
+//          for(String number : whiteListNumbers)
+          // TODO: refactor this to check against whiteListNumbers
         for (ParentsContact p : child.getParents()) {
           if (p.getMobileNumber().equals(activeToken.getNumber())) {
             eligibleContactNumbers.remove(activeToken.getNumber());

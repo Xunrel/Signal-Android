@@ -274,7 +274,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
       String jsonChild = "";
       try {
         jsonChild = JsonUtils.toJson(child);
-        fHelper.writeNumberToFile(context, jsonChild, fHelper.vCardFileName);
+          fHelper.writeDataToFile(context, jsonChild, fHelper.vCardFileName);
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -360,8 +360,9 @@ public class RegistrationActivity extends BaseActionBarActivity {
     }
 
     private void saveNumberToFile(final Context context, final String e164number) {
-      fHelper.writeNumberToFile(context, e164number, fHelper.parentsFileName);
-      fHelper.writeNumberToFile(context, e164number, fHelper.contactsFileName);
+        // TODO: save parents number to whitelist as JSON Array
+        fHelper.writeDataToFile(context, e164number, fHelper.parentsFileName);
+        fHelper.writeDataToFile(context, e164number, fHelper.contactsFileName);
     }
 
     private String readNumberFromFile(final Context context) {

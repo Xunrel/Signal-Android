@@ -229,6 +229,8 @@ public class ConversationFragment extends Fragment
     } else {
       MessageRecord messageRecord = messageRecords.iterator().next();
 
+        // TODO: Hier werden die korrekten Buttons angezeigt für eine Nachricht
+
       menu.findItem(R.id.menu_context_resend).setVisible(messageRecord.isFailed());
       menu.findItem(R.id.menu_context_save_attachment).setVisible(!actionMessage                     &&
                                                                   messageRecord.isMms()              &&
@@ -463,6 +465,45 @@ public class ConversationFragment extends Fragment
     void setThreadId(long threadId);
   }
 
+    private static class ConversationDateHeader extends HeaderViewHolder {
+
+        private final Animation animateIn;
+        private final Animation animateOut;
+
+        private boolean pendingHide = false;
+
+        private ConversationDateHeader(Context context, TextView textView) {
+            super(textView);
+            this.animateIn = AnimationUtils.loadAnimation(context, R.anim.slide_from_top);
+            this.animateOut = AnimationUtils.loadAnimation(context, R.anim.slide_to_top);
+
+            this.animateIn.setDuration(100);
+            this.animateOut.setDuration(100);
+        }
+
+        public void show() {
+            if (pendingHide) {
+                pendingHide = false;
+            } else {
+                ViewUtil.animateIn(textView, animateIn);
+            }
+        }
+
+        public void hide() {
+            pendingHide = true;
+
+            textView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (pendingHide) {
+                        pendingHide = false;
+                        ViewUtil.animateOut(textView, animateOut, View.GONE);
+                    }
+                }
+            }, 400);
+        }
+    }
+
   private class ConversationScrollListener extends OnScrollListener {
 
     private final Animation              scrollButtonInAnimation;
@@ -631,45 +672,6 @@ public class ConversationFragment extends Fragment
       }
 
       return false;
-    }
-  }
-
-  private static class ConversationDateHeader extends HeaderViewHolder {
-
-    private final Animation animateIn;
-    private final Animation animateOut;
-
-    private boolean pendingHide = false;
-
-    private ConversationDateHeader(Context context, TextView textView) {
-      super(textView);
-      this.animateIn  = AnimationUtils.loadAnimation(context, R.anim.slide_from_top);
-      this.animateOut = AnimationUtils.loadAnimation(context, R.anim.slide_to_top);
-
-      this.animateIn.setDuration(100);
-      this.animateOut.setDuration(100);
-    }
-
-    public void show() {
-      if (pendingHide) {
-        pendingHide = false;
-      } else {
-        ViewUtil.animateIn(textView, animateIn);
-      }
-    }
-
-    public void hide() {
-      pendingHide = true;
-
-      textView.postDelayed(new Runnable() {
-        @Override
-        public void run() {
-          if (pendingHide) {
-            pendingHide = false;
-            ViewUtil.animateOut(textView, animateOut, View.GONE);
-          }
-        }
-      }, 400);
     }
   }
 }

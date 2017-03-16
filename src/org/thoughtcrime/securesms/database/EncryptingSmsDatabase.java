@@ -79,6 +79,7 @@ public class EncryptingSmsDatabase extends SmsDatabase {
     return insertMessageOutbox(threadId, message, type, forceSms, timestamp);
   }
 
+    // TODO: Anzeige der Nachricht
   public Optional<InsertResult> insertMessageInbox(@NonNull MasterSecretUnion masterSecret,
                                                    @NonNull IncomingTextMessage message)
   {
@@ -168,6 +169,30 @@ public class EncryptingSmsDatabase extends SmsDatabase {
     return new DecryptingReader(masterSecret, cursor);
   }
 
+    private static class PlaintextCache {
+        private static final int MAX_CACHE_SIZE = 2000;
+        private static final Map<String, SoftReference<String>> decryptedBodyCache =
+                Collections.synchronizedMap(new LRUCache<String, SoftReference<String>>(MAX_CACHE_SIZE));
+
+        public void put(String ciphertext, String plaintext) {
+            decryptedBodyCache.put(ciphertext, new SoftReference<String>(plaintext));
+        }
+
+        public String get(String ciphertext) {
+            SoftReference<String> plaintextReference = decryptedBodyCache.get(ciphertext);
+
+            if (plaintextReference != null) {
+                String plaintext = plaintextReference.get();
+
+                if (plaintext != null) {
+                    return plaintext;
+                }
+            }
+
+            return null;
+        }
+    }
+
   public class DecryptingReader extends SmsDatabase.Reader {
 
     private final MasterCipher masterCipher;
@@ -204,30 +229,6 @@ public class EncryptingSmsDatabase extends SmsDatabase {
         Log.w("EncryptingSmsDatabase", e);
         return new DisplayRecord.Body(context.getString(R.string.EncryptingSmsDatabase_error_decrypting_message), true);
       }
-    }
-  }
-
-  private static class PlaintextCache {
-    private static final int MAX_CACHE_SIZE = 2000;
-    private static final Map<String, SoftReference<String>> decryptedBodyCache =
-        Collections.synchronizedMap(new LRUCache<String, SoftReference<String>>(MAX_CACHE_SIZE));
-
-    public void put(String ciphertext, String plaintext) {
-      decryptedBodyCache.put(ciphertext, new SoftReference<String>(plaintext));
-    }
-
-    public String get(String ciphertext) {
-      SoftReference<String> plaintextReference = decryptedBodyCache.get(ciphertext);
-
-      if (plaintextReference != null) {
-        String plaintext = plaintextReference.get();
-
-        if (plaintext != null) {
-          return plaintext;
-        }
-      }
-
-      return null;
     }
   }
 }

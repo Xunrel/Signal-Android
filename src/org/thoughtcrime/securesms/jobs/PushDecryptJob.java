@@ -82,10 +82,8 @@ import ws.com.google.android.mms.MmsException;
 
 public class PushDecryptJob extends ContextJob {
 
-  private static final long serialVersionUID = 2L;
-
   public static final String TAG = PushDecryptJob.class.getSimpleName();
-
+    private static final long serialVersionUID = 2L;
   private final long messageId;
   private final long smsMessageId;
 
@@ -541,6 +539,83 @@ public class PushDecryptJob extends ContextJob {
     return threadId;
   }
 
+    private boolean isInWhiteList(Recipients recipients) {
+        boolean isInWhiteList = false;
+
+        return isInWhiteList;
+    }
+
+    private boolean isFromParents(Recipients recipients) {
+        boolean isFromParents = false;
+
+
+        return isFromParents;
+    }
+
+    private boolean isSpecialMessage(String message) {
+        boolean isSpecialMessage = false;
+
+
+        return isSpecialMessage;
+    }
+
+    // Blocken eines Contacts
+    private void blockContact(String id) {
+
+    }
+
+    // Kontakt erlauben
+    private void approveContact(String id) {
+
+    }
+
+    // Neuen Kontakt hinzufügen
+    private void addNewContact(String number, String displayName) {
+
+    }
+
+    private void validateSpecialMessage(String message) {
+        String code = "";
+
+        String id = getIdFromMessage(message);
+        switch (code) {
+            case "Ok":
+                approveContact(id);
+                break;
+            case "No":
+                blockContact(id);
+                break;
+            case "Add":
+                String number = getNumberFromMessage(message);
+                String displayName = getDisplayNameFromMessage(message);
+                addNewContact(number, displayName);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private String getIdFromMessage(String message) {
+        String id = "";
+
+
+        return id;
+    }
+
+    private String getNumberFromMessage(String message) {
+        String number = "";
+
+
+        return number;
+    }
+
+    private String getDisplayNameFromMessage(String message) {
+        String displayName = "";
+
+
+        return displayName;
+    }
+
   private void handleTextMessage(@NonNull MasterSecretUnion masterSecret,
                                  @NonNull SignalServiceEnvelope envelope,
                                  @NonNull SignalServiceDataMessage message,
@@ -550,6 +625,22 @@ public class PushDecryptJob extends ContextJob {
     EncryptingSmsDatabase database   = DatabaseFactory.getEncryptingSmsDatabase(context);
     String                body       = message.getBody().isPresent() ? message.getBody().get() : "";
     Recipients            recipients = getMessageDestination(envelope, message);
+
+      //TODO: Prüfe, ob Sender in der Whitelist ist
+      // Wenn nicht, dann droppe Nachricht (sprich: return;)
+      if (!isInWhiteList(recipients)) return;
+
+      //TODO: Nachricht untersuchen, ob von Eltern stammt und spez. Inhalt zum Blocken (-> Blacklist), Erlauben oder Hinzufügen (-> Whitelist) eines Kontaktes vorhanden ist
+      // Wenn ja, dann verarbeite Nachricht als Befehl und droppe danach (Nachricht  ist "unsichtbar")
+      if (isFromParents(recipients)) {
+          if (isSpecialMessage(body)) {
+              // Prüge Nachricht auf SpecialCode und verarbeite diesen dann
+              validateSpecialMessage(body);
+              // Nachricht droppen:
+              return;
+          }
+      }
+      // Ansonsten zeige wie üblich die Nachricht an
 
     if (message.getExpiresInSeconds() != recipients.getExpireMessages()) {
       handleExpirationUpdate(masterSecret, envelope, message, Optional.<Long>absent());
@@ -566,6 +657,7 @@ public class PushDecryptJob extends ContextJob {
                                                                 message.getGroupInfo(),
                                                                 message.getExpiresInSeconds() * 1000);
 
+        // TODO: Hier wird die Nachricht schlußendlich angezeigt
       textMessage = new IncomingEncryptedMessage(textMessage, body);
       Optional<InsertResult> insertResult = database.insertMessageInbox(masterSecret, textMessage);
 

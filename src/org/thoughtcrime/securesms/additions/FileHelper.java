@@ -16,8 +16,11 @@ public class FileHelper {
     public String contactsFileName = "contacts";
     public String parentsFileName = "parents";
     public String vCardFileName = "vCard";
+    public String whiteListFileName = "white";
+    public String pendingListFileName = "pending";
+    public String blockedListFileName = "block";
 
-    public void writeNumberToFile(final Context context, final String data, final String filename) {
+    public void writeDataToFile(final Context context, final String data, final String filename) {
         FileOutputStream outputStream;
         try {
             outputStream = context.openFileOutput(filename, Context.MODE_PRIVATE);
