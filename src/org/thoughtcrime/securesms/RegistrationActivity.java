@@ -27,9 +27,11 @@ import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
-import org.thoughtcrime.securesms.additions.ChildContact;
+import org.thoughtcrime.securesms.additions.BlackList;
 import org.thoughtcrime.securesms.additions.FileHelper;
 import org.thoughtcrime.securesms.additions.ParentsContact;
+import org.thoughtcrime.securesms.additions.VCard;
+import org.thoughtcrime.securesms.additions.WhiteList;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.util.Dialogs;
 import org.thoughtcrime.securesms.util.JsonUtils;
@@ -38,6 +40,7 @@ import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * The register account activity.  Prompts ths user for their registration information
@@ -218,7 +221,6 @@ public class RegistrationActivity extends BaseActionBarActivity {
   }
 
   private class CreateButtonListener implements View.OnClickListener {
-    private FileHelper fHelper = new FileHelper();
     @Override
     public void onClick(View v) {
       final RegistrationActivity self = RegistrationActivity.this;
@@ -245,16 +247,13 @@ public class RegistrationActivity extends BaseActionBarActivity {
       }
 
       ParentsContact parentsContact = new ParentsContact(parentFirstName.getText().toString(), parentLastName.getText().toString(), e164parentNumber);
-      ChildContact child = new ChildContact(childFirstName.getText().toString(), childLastName.getText().toString(), e164number);
-      child.addParent(parentsContact);
+      VCard personalVCard = new VCard(childFirstName.getText().toString(), childLastName.getText().toString(), e164number);
+      personalVCard.addParent(parentsContact);
 
-      saveNumberToFile(self, e164parentNumber);
-
-      String savedNumber = readNumberFromFile(self);
-
-      createVCard(self, child);
-
-      Toast.makeText(self, String.format("got number %s from pFile", savedNumber), Toast.LENGTH_LONG);
+      createFiles(self);
+      // TODO Steffi: Ändern des DisplayNamens der Eltern zu Mama und/oder Papa
+      WhiteList.addNumberToFile(self, e164parentNumber, parentFirstName + " " + parentLastName);
+      createVCard(self, personalVCard);
 
       PlayServicesStatus gcmStatus = checkPlayServices(self);
 
@@ -270,15 +269,42 @@ public class RegistrationActivity extends BaseActionBarActivity {
       }
     }
 
-    private void createVCard(RegistrationActivity context, ChildContact child) {
-      String jsonChild = "";
+    private void createFiles(final Context context) {
       try {
-        jsonChild = JsonUtils.toJson(child);
-          fHelper.writeDataToFile(context, jsonChild, fHelper.vCardFileName);
+        createWhiteList(context);
+        createBlackList(context);
+        createPendingList(context);
       } catch (IOException e) {
         e.printStackTrace();
       }
+    }
 
+    private void createWhiteList(final Context context) throws IOException {
+      WhiteList whiteListArray = new WhiteList();
+      String whiteListString = JsonUtils.toJson(whiteListArray);
+      FileHelper.writeDataToFile(context, whiteListString, FileHelper.whiteListFileName);
+    }
+
+    private void createBlackList(final Context context) throws IOException {
+      BlackList blackList = new BlackList();
+      String blackListString = JsonUtils.toJson(blackList);
+      FileHelper.writeDataToFile(context, blackListString, FileHelper.blackListFileName);
+    }
+
+    private void createPendingList(final Context context) throws IOException {
+      ArrayList<VCard> pendingListArray = new ArrayList<>();
+      String pendingListString = JsonUtils.toJson(pendingListArray);
+      FileHelper.writeDataToFile(context, pendingListString, FileHelper.pendingListFileName);
+    }
+
+    private void createVCard(RegistrationActivity context, VCard vCard) {
+      String jsonChild = "";
+      try {
+        jsonChild = JsonUtils.toJson(vCard);
+        FileHelper.writeDataToFile(context, jsonChild, FileHelper.vCardFileName);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
 
     private void validateEntries(final RegistrationActivity self) {
@@ -360,13 +386,13 @@ public class RegistrationActivity extends BaseActionBarActivity {
     }
 
     private void saveNumberToFile(final Context context, final String e164number) {
-        // TODO: save parents number to whitelist as JSON Array
-        fHelper.writeDataToFile(context, e164number, fHelper.parentsFileName);
-        fHelper.writeDataToFile(context, e164number, fHelper.contactsFileName);
+      // TODO Steffi: save parents number to whitelist as JSON Array
+      FileHelper.writeDataToFile(context, e164number, FileHelper.parentsFileName);
+      FileHelper.writeDataToFile(context, e164number, FileHelper.contactsFileName);
     }
 
     private String readNumberFromFile(final Context context) {
-      return fHelper.readDataFromFile(context, fHelper.parentsFileName);
+      return FileHelper.readDataFromFile(context, FileHelper.parentsFileName);
     }
 
     private void promptForNoPlayServices(final Context context, final String e164number) {

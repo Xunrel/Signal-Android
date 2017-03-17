@@ -13,9 +13,9 @@ import android.util.Log;
 
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.R;
-import org.thoughtcrime.securesms.additions.ChildContact;
 import org.thoughtcrime.securesms.additions.FileHelper;
 import org.thoughtcrime.securesms.additions.ParentsContact;
+import org.thoughtcrime.securesms.additions.VCard;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.SessionUtil;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
@@ -44,7 +44,7 @@ public class DirectoryHelper {
 
   private static final String TAG = DirectoryHelper.class.getSimpleName();
 
-  // TODO: Aktualisierung der Kontaktliste
+  // TODO Steffi: Aktualisierung der Kontaktliste
   public static void refreshDirectory(@NonNull Context context, @Nullable MasterSecret masterSecret)
       throws IOException
   {
@@ -63,7 +63,7 @@ public class DirectoryHelper {
     }
   }
 
-  // TODO: Hier werden die Kontakte erneuert
+  // TODO Steffi: Hier werden die Kontakte erneuert
   public static @NonNull RefreshResult refreshDirectory(@NonNull Context context,
                                                         @NonNull SignalServiceAccountManager accountManager,
                                                         @NonNull String localNumber)
@@ -73,19 +73,18 @@ public class DirectoryHelper {
     Set<String>               eligibleContactNumbers = directory.getPushEligibleContactNumbers(localNumber);
     List<ContactTokenDetails> activeTokens           = accountManager.getContacts(eligibleContactNumbers);
 
-    FileHelper fileHelper = new FileHelper();
-    String vCard = fileHelper.readDataFromFile(context, fileHelper.vCardFileName);
-    ChildContact child = JsonUtils.fromJson(vCard, ChildContact.class);
+    String vCard = FileHelper.readDataFromFile(context, FileHelper.vCardFileName);
+    VCard child = JsonUtils.fromJson(vCard, VCard.class);
     List<ContactTokenDetails> activeTokensToRemove = new ArrayList<>();
 
-      // TODO: use the following lines to read from whitelist
+    // TODO Steffi: use the following lines to read from whitelist
 //    String whiteListContent = fileHelper.readDataFromFile(context, fileHelper.whiteListFileName);
 //    ArrayList<String> whiteListNumbers = JsonUtils.fromJson(whiteListContent, ArrayList.class);
 
     if (activeTokens != null) {
       for (ContactTokenDetails activeToken : activeTokens) {
 //          for(String number : whiteListNumbers)
-          // TODO: refactor this to check against whiteListNumbers
+        // TODO Steffi: refactor this to check against whiteListNumbers
         for (ParentsContact p : child.getParents()) {
           if (p.getMobileNumber().equals(activeToken.getNumber())) {
             eligibleContactNumbers.remove(activeToken.getNumber());
@@ -102,7 +101,7 @@ public class DirectoryHelper {
       }
 
       directory.setNumbers(activeTokens, eligibleContactNumbers);
-      // TODO: Update der Kontakt DB Tabelle
+      // TODO Steffi: Update der Kontakt DB Tabelle
       return updateContactsDatabase(context, localNumber, activeTokens, true);
     }
 
@@ -124,6 +123,7 @@ public class DirectoryHelper {
       if (details.isPresent()) {
         directory.setNumber(details.get(), true);
 
+        // TODO Steffi: whiteList & blackList überprüfen
         RefreshResult result = updateContactsDatabase(context, localNumber, details.get());
 
         if (!result.getNewUsers().isEmpty() && TextSecurePreferences.isMultiDevice(context)) {
@@ -210,7 +210,7 @@ public class DirectoryHelper {
 
     if (account.isPresent()) {
       try {
-        // TODO: Bereits bei Signal registrierte Kontakte, die auch in der eigenen Kontaktliste vorkommen, werden hier hinzugefügt
+        // TODO Steffi: Bereits bei Signal registrierte Kontakte, die auch in der eigenen Kontaktliste vorkommen, werden hier hinzugefügt
         List<String> newUsers = DatabaseFactory.getContactsDatabase(context)
                                                .setRegisteredUsers(account.get().getAccount(), localNumber, activeTokens, removeMissing);
 

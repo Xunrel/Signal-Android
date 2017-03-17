@@ -73,7 +73,7 @@ public class ContactsDatabase {
     this.context  = context;
   }
 
-    // TODO: Bereits bei Signal registrierte Benutzer dieses Kontaktes werden hinzugefügt
+  // TODO Steffi: Bereits bei Signal registrierte Benutzer dieses Kontaktes werden hinzugefügt
   public synchronized @NonNull List<String> setRegisteredUsers(@NonNull Account account,
                                                                @NonNull String localNumber,
                                                                @NonNull List<ContactTokenDetails> registeredContacts,
@@ -86,6 +86,9 @@ public class ContactsDatabase {
     ArrayList<ContentProviderOperation> operations        = new ArrayList<>();
     Map<String, SignalContact>          currentContacts   = getSignalRawContacts(account, localNumber);
 
+    // TODO Steffi: whiteList auslesen und nummern und namen für update auslesen
+
+
     for (ContactTokenDetails registeredContact : registeredContacts) {
       String registeredNumber = registeredContact.getNumber();
 
@@ -97,7 +100,9 @@ public class ContactsDatabase {
         if (systemContactInfo.isPresent()) {
           Log.w(TAG, "Adding number: " + registeredNumber);
           addedNumbers.add(registeredNumber);
+          // TODO Steffi: systemContactInfo.get().number nutzen um DisplayNamen zu identifizieren
           addTextSecureRawContact(operations, account, systemContactInfo.get().number,
+                  // TODO Steffi: statt 'systemContactInfo.get().name' wird name aus der whitelist genutzt
                                   systemContactInfo.get().name, systemContactInfo.get().id,
                                   true);
         }
@@ -115,6 +120,7 @@ public class ContactsDatabase {
       } else if (!currentContactEntry.getValue().isVoiceSupported()) {
         Log.w(TAG, "Adding voice support: " + currentContactEntry.getKey());
         addContactVoiceSupport(operations, currentContactEntry.getKey(), currentContactEntry.getValue().getId());
+        // TODO Steffi: statt 'currentContactEntry.getValue().getRawDisplayName()' wird name aus der whitelist genutzt
       } else if (!Util.isStringEquals(currentContactEntry.getValue().getRawDisplayName(),
                                       currentContactEntry.getValue().getAggregateDisplayName()))
       {

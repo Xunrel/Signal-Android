@@ -79,7 +79,7 @@ public class EncryptingSmsDatabase extends SmsDatabase {
     return insertMessageOutbox(threadId, message, type, forceSms, timestamp);
   }
 
-    // TODO: Anzeige der Nachricht
+    // TODO Steffi: Anzeige der Nachricht
   public Optional<InsertResult> insertMessageInbox(@NonNull MasterSecretUnion masterSecret,
                                                    @NonNull IncomingTextMessage message)
   {
