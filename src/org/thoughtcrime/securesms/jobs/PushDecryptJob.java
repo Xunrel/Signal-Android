@@ -39,7 +39,6 @@ import org.thoughtcrime.securesms.mms.OutgoingExpirationUpdateMessage;
 import org.thoughtcrime.securesms.mms.OutgoingMediaMessage;
 import org.thoughtcrime.securesms.mms.OutgoingSecureMediaMessage;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
-import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.service.KeyCachingService;
@@ -551,29 +550,23 @@ public class PushDecryptJob extends ContextJob {
     return threadId;
   }
 
-  private boolean isInWhiteList(Recipients recipients) {
+  private boolean isInWhiteList(String source) {
     WhiteList whiteList = WhiteList.getWhiteListContent(context);
-    for (Recipient r : recipients) {
-      if (whiteList.isInWhiteList(r.getNumber())) {
-        return true;
-      }
-    }
-
-    return false;
+    return whiteList.isInWhiteList(source);
   }
 
-  private boolean isFromParents(Recipients recipients) {
+  private boolean isFromParents(String source) {
     VCard personalVCard = getPersonalVCard();
+    boolean isFromParents = false;
 
-    for (Recipient r : recipients) {
-      for (ParentsContact p : personalVCard.getParents()) {
-        if (p.getMobileNumber().equals(r.getNumber())) {
-          return true;
-        }
+    for (ParentsContact p : personalVCard.getParents()) {
+      if (p.getMobileNumber().equals(source)) {
+        isFromParents = true;
+        break;
       }
     }
 
-    return false;
+    return isFromParents;
   }
 
   private VCard getPersonalVCard() {
@@ -599,12 +592,13 @@ public class PushDecryptJob extends ContextJob {
     if (MessageHelper.isPermanentBlock(message)) {
       expDate = null;
     }
-
     if (id > 0) {
       VCard vCard = null;
       try {
         vCard = PendingList.removeVCardById(context, id);
-        BlackList.addNumberToFile(context, vCard.getMobileNumber(), expDate);
+        if (vCard != null) {
+          BlackList.addNumberToFile(context, vCard.getMobileNumber(), expDate);
+        }
       } catch (Exception e) {
         e.printStackTrace();
         if (vCard != null) {
@@ -622,7 +616,9 @@ public class PushDecryptJob extends ContextJob {
       VCard vCard = null;
       try {
         vCard = PendingList.removeVCardById(context, id);
-        WhiteList.addNumberToFile(context, vCard.getMobileNumber(), vCard.getFirstName() + " " + vCard.getLastName());
+        if (vCard != null) {
+          WhiteList.addNumberToFile(context, vCard.getMobileNumber(), vCard.getFirstName() + " " + vCard.getLastName());
+        }
       } catch (Exception e) {
         e.printStackTrace();
         if (vCard != null) {
@@ -640,7 +636,7 @@ public class PushDecryptJob extends ContextJob {
   }
 
   // Angefragte Liste anfordern
-  private void listContent(String message, Recipients recipients) {
+  private void listContent(String message, String source) {
     String listName = MessageHelper.getListNameFromMessage(message);
     // TODO Steffi: Methode implementieren, um angefragte Liste zurück zu liefern
     switch (listName) {
@@ -655,11 +651,11 @@ public class PushDecryptJob extends ContextJob {
     }
   }
 
-  private void sendHelpMessage(Recipients recipients) {
+  private void sendHelpMessage(String source) {
 
   }
 
-  private void validateSpecialMessage(String message, Recipients recipients) {
+  private void validateSpecialMessage(String message, String source) {
     String code = MessageHelper.getCommandFromMessage(message);
 
     switch (code) {
@@ -673,10 +669,10 @@ public class PushDecryptJob extends ContextJob {
         addNewContact(message);
         break;
       case "list":
-        listContent(message, recipients);
+        listContent(message, source);
         break;
       case "help":
-        sendHelpMessage(recipients);
+        sendHelpMessage(source);
       default:
         break;
     }
@@ -695,19 +691,11 @@ public class PushDecryptJob extends ContextJob {
   }
 
   private void createPendingList(final Context context) throws IOException {
-    ArrayList<VCard> pendingListArray = new ArrayList<>();
-    VCard newChild = new VCard("Hans", "Peter", "+17584621035");
-    ParentsContact parentsContact = new ParentsContact("Hans Papa", "Peter", "17584621017");
-    newChild.getParents().add(parentsContact);
-    // TODO Steffi: Ändern, wenn PendingList fertig ist
-//    int newId = pendingListArray != null && pendingListArray.size() > 0 ?
-//                  pendingListArray.get(pendingListArray.size() - 1).getId() :
-//                  0;
-//    newChild.setId(newId + 1);
-    pendingListArray.add(newChild);
-
-    String pendingListString = JsonUtils.toJson(pendingListArray);
-    FileHelper.writeDataToFile(context, pendingListString, FileHelper.pendingListFileName);
+//    PendingList pendingList = PendingList.getPendingListContent(context);
+//    VCard newChild = new VCard("Hans", "Peter", "+17584621035");
+//    ParentsContact parentsContact = new ParentsContact("Hans Papa", "Peter", "17584621017");
+//    newChild.getParents().add(parentsContact);
+//    pendingList.addNewVCard(context, newChild);
   }
 
   private void handleTextMessage(@NonNull MasterSecretUnion masterSecret,
@@ -719,34 +707,35 @@ public class PushDecryptJob extends ContextJob {
     EncryptingSmsDatabase database   = DatabaseFactory.getEncryptingSmsDatabase(context);
     String                body       = message.getBody().isPresent() ? message.getBody().get() : "";
     Recipients            recipients = getMessageDestination(envelope, message);
+    String source = envelope.getSource();
 
 
-    try {
-      createWhiteList(context);
-      createBlockList(context);
-      createPendingList(context);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    // TODO Steffi: testweise pendingList befüllen und evtl. löschen um id ermitteln zu können
-    ArrayList<VCard> pendingList = new ArrayList<>();
-    String pendingString = FileHelper.readDataFromFile(context, FileHelper.pendingListFileName);
-    try {
-      pendingList = (ArrayList<VCard>) JsonUtils.fromJson(pendingString, ArrayList.class);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+//    try {
+//      createWhiteList(context);
+//      createBlockList(context);
+//      createPendingList(context);
+//    } catch (IOException e) {
+//      e.printStackTrace();
+//    }
+//    // TODO Steffi: testweise pendingList befüllen und evtl. löschen um id ermitteln zu können
+//    ArrayList<VCard> pendingList = new ArrayList<>();
+//    String pendingString = FileHelper.readDataFromFile(context, FileHelper.pendingListFileName);
+//    try {
+//      pendingList = (ArrayList<VCard>) JsonUtils.fromJson(pendingString, ArrayList.class);
+//    } catch (IOException e) {
+//      e.printStackTrace();
+//    }
 
     //TODO Steffi: Prüfe, ob Sender in der Whitelist ist
     // Wenn nicht, dann droppe Nachricht (sprich: return;)
-    if (!isInWhiteList(recipients)) return;
+    if (!isInWhiteList(source)) return;
 
     //TODO Steffi: Nachricht untersuchen, ob von Eltern stammt und spez. Inhalt zum Blocken (-> Blacklist), Erlauben oder Hinzufügen (-> Whitelist) eines Kontaktes vorhanden ist
     // Wenn ja, dann verarbeite Nachricht als Befehl und droppe danach (Nachricht  ist "unsichtbar")
-    if (isFromParents(recipients)) {
+    if (isFromParents(source)) {
       if (isSpecialMessage(body)) {
         // Prüge Nachricht auf SpecialCode und verarbeite diesen dann
-        validateSpecialMessage(body, recipients);
+        validateSpecialMessage(body, source);
         // Nachricht droppen:
         return;
       }

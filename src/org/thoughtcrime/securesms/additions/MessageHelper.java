@@ -12,7 +12,7 @@ public final class MessageHelper {
     // "!@ new NUMBER DISPLAYNAME"
     // "!@ list LISTNAME"
     // "!@ help"
-    private static final String SPECIAL_CODE_PREFIX = "!@ ";
+    private static final String SPECIAL_CODE_PREFIX = "!@";
 
     public static boolean startsWithSpecialCode(String message) {
         return message.startsWith(SPECIAL_CODE_PREFIX);
@@ -48,7 +48,7 @@ public final class MessageHelper {
 
         if (messageParts.length > 1) {
             try {
-                id = Integer.valueOf(messageParts[messageParts.length]);
+                id = Integer.valueOf(messageParts[messageParts.length - 1]);
             } catch (NumberFormatException nfe) {
                 nfe.printStackTrace();
             }
