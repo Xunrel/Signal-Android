@@ -15,7 +15,11 @@ import java.util.Map;
  * Created by  on 17.03.2017.
  */
 
+/**
+ * Repräsentiert die Liste der ausstehenden Kontakte
+ */
 public class PendingList {
+    // Steffi: Anzahl Tage, bis der Kontakt aus der Pendinglist entfernt werden kann
     private static final Integer EXPIRATION_TIME = 14;
     private HashMap<Integer, VCard> pendingVCards;
 
@@ -29,6 +33,12 @@ public class PendingList {
         }
     }
 
+    /**
+     * Methode um eine VCard der Peninglist hinzuzufügen
+     *
+     * @param context Context der Application
+     * @param vCard   VCard des anfragenden Kindes
+     */
     public static void addNewVCard(final Context context, VCard vCard) {
         try {
             PendingList pendingList = getPendingListContent(context);
@@ -40,6 +50,12 @@ public class PendingList {
         }
     }
 
+    /**
+     * Entfernt eine VCard aus der Pendinglist anhand der ID
+     * @param context Context der Application
+     * @param id ID des Kontaktes innerhalb der Pendinglist
+     * @return Liefert die entfernte VCard zurück.
+     */
     public static VCard removeVCardById(final Context context, int id) {
         VCard vCard = null;
 
@@ -55,6 +71,10 @@ public class PendingList {
         return vCard;
     }
 
+    /**
+     * Hilfs-Methode um die Pendinglist auf veraltete Einträge zu überprüfen
+     * @param context Context der Application
+     */
     public static void checkExpirationDates(final Context context) {
         String jsonString = FileHelper.readDataFromFile(context, FileHelper.pendingListFileName);
         try {
@@ -85,6 +105,11 @@ public class PendingList {
         }
     }
 
+    /**
+     * Liefert den Inhalt der Pendinglist zurück.
+     * @param context Context der Application
+     * @return Inhalt der Pendinglist
+     */
     public static PendingList getPendingListContent(final Context context) {
         PendingList pendingList = new PendingList();
         String jsonString = FileHelper.readDataFromFile(context, FileHelper.pendingListFileName);
@@ -106,12 +131,17 @@ public class PendingList {
     }
 
     private void addVCard(final Context context, VCard vCard) {
+        // Steffi: Prüfe, ob vCard in der Liste existiert
         if (existsVCard(vCard)) return;
+        // Wenn vCard in der Blacklist oder Whitelist bereits vorhanden ist, tue nichts
         if (BlackList.getBlackListContent(context).isInBlackList(vCard.getMobileNumber())) return;
         if (WhiteList.getWhiteListContent(context).isInWhiteList(vCard.getMobileNumber())) return;
 
+        // Füge der VCard ein Ablaufdatum hinzu
         addExpirationDate(vCard);
+        // Ermittle freie ID in der Liste für die VCard
         Integer newId = getNewId();
+        // Füge die neue VCard der Pendinglist hinzu
         this.pendingVCards.put(newId, vCard);
     }
 

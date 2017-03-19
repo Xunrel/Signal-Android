@@ -4,6 +4,9 @@ package org.thoughtcrime.securesms.additions;
  * Created by  on 13.03.2017.
  */
 
+/**
+ * Definiert einen Eltern-Kontakt eines Kindes
+ */
 public class ParentsContact extends Contact {
     public ParentsContact(String firstName, String lastName, String mobileNumber) {
         super(firstName, lastName, mobileNumber);

@@ -7,7 +7,11 @@ import java.util.Date;
  * Created by  on 13.03.2017.
  */
 
-// TODO Steffi: Rename to VCard
+// Steffi:
+
+/**
+ * Repräsentiert die Kontaktinformation eines Kindes
+ */
 public class VCard extends Contact {
     private Date expirationDate;
     private ArrayList<ParentsContact> parents;
@@ -37,6 +41,12 @@ public class VCard extends Contact {
         this.expirationDate = expirationDate;
     }
 
+    /**
+     * Prüf-Method, ob VCard abgelaufen ist
+     *
+     * @param dateToCheck Datum, gegen das geprüft werden soll
+     * @return TRUE, wenn das Ablaufdatum der VCard überschritten wurde, ansonsten FALSE.
+     */
     public boolean isExpired(Date dateToCheck) {
         return this.expirationDate.before(dateToCheck);
     }

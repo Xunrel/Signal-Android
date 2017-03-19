@@ -58,15 +58,18 @@ public class RegistrationActivity extends BaseActionBarActivity {
   private Spinner              countrySpinner;
   private TextView             countryCode;
   private TextView             number;
+  private Button               createButton;
+  private Button               skipButton;
+  private MasterSecret masterSecret;
+
+  // Steffi:
+  // Zusätzliche Informationen, die für das System benötigt werden
   private TextView childFirstName;
   private TextView childLastName;
   private TextView parentsCountryCode;
   private TextView parentsNumber;
   private TextView parentFirstName;
   private TextView parentLastName;
-  private Button               createButton;
-  private Button               skipButton;
-  private MasterSecret masterSecret;
 
   @Override
   public void onCreate(Bundle icicle) {
@@ -94,25 +97,31 @@ public class RegistrationActivity extends BaseActionBarActivity {
     this.countrySpinner = (Spinner)findViewById(R.id.country_spinner);
     this.countryCode    = (TextView)findViewById(R.id.country_code);
     this.number         = (TextView)findViewById(R.id.number);
+    this.createButton   = (Button)findViewById(R.id.registerButton);
+    this.skipButton     = (Button)findViewById(R.id.skipButton);
+
+    // Steffi:
+    // Ermittlung der Werte aus der UI
     this.childFirstName = (TextView) findViewById(R.id.childFirstName);
     this.childLastName = (TextView) findViewById(R.id.childLastName);
     this.parentsCountryCode = (TextView) findViewById(R.id.parents_country_code);
     this.parentsNumber = (TextView) findViewById(R.id.parents_number);
     this.parentFirstName = (TextView) findViewById(R.id.parentFirstName);
     this.parentLastName = (TextView) findViewById(R.id.parentLastName);
-    this.createButton   = (Button)findViewById(R.id.registerButton);
-    this.skipButton     = (Button)findViewById(R.id.skipButton);
 
     this.countryCode.addTextChangedListener(new CountryCodeChangedListener());
-    this.parentsCountryCode.addTextChangedListener(new CountryCodeChangedListener());
     this.number.addTextChangedListener(new NumberChangedListener());
+    this.createButton.setOnClickListener(new CreateButtonListener());
+    this.skipButton.setOnClickListener(new CancelButtonListener());
+
+    // Steffi:
+    // Hinzufügen der ChangeListener
     this.childFirstName.addTextChangedListener(new NumberChangedListener());
     this.childLastName.addTextChangedListener(new NumberChangedListener());
+    this.parentsCountryCode.addTextChangedListener(new ParentsCountryCodeChangedListener());
     this.parentsNumber.addTextChangedListener(new NumberChangedListener());
     this.parentFirstName.addTextChangedListener(new NumberChangedListener());
     this.parentLastName.addTextChangedListener(new NumberChangedListener());
-    this.createButton.setOnClickListener(new CreateButtonListener());
-    this.skipButton.setOnClickListener(new CancelButtonListener());
 
     if (getIntent().getBooleanExtra("cancel_button", false)) {
       this.skipButton.setVisibility(View.VISIBLE);
@@ -225,8 +234,11 @@ public class RegistrationActivity extends BaseActionBarActivity {
     public void onClick(View v) {
       final RegistrationActivity self = RegistrationActivity.this;
 
+      // Steffi: Einsprungspunkt, sobald auf "Registrieren"-Button gedrückt wird.
+      // Überprüft, dass alle notwendigen Werte eingetragen wurden
       validateEntries(self);
 
+      // Formattiert die angegebenen Nummern nach dem internationalen E.164 Nummer-Format
       final String e164number = getConfiguredE164Number();
       final String e164parentNumber = getConfguredE164ParentNumber();
 
@@ -246,12 +258,15 @@ public class RegistrationActivity extends BaseActionBarActivity {
         return;
       }
 
+      // Steffi: Erstellung der persönlichen VCard
       ParentsContact parentsContact = new ParentsContact(parentFirstName.getText().toString(), parentLastName.getText().toString(), e164parentNumber);
       VCard personalVCard = new VCard(childFirstName.getText().toString(), childLastName.getText().toString(), e164number);
       personalVCard.addParent(parentsContact);
 
+      // Steffi: Erstellung der notwendigen Listen
       createFiles(self);
       // TODO Steffi: Ändern des DisplayNamens der Eltern zu Mama und/oder Papa
+      // Mobilnummer des angegebenen Eltern-Kontaktes wird direkt der Whitelist hinzugefügt
       WhiteList.addNumberToFile(self, e164parentNumber, parentFirstName + " " + parentLastName);
       createVCard(self, personalVCard);
 
@@ -385,16 +400,6 @@ public class RegistrationActivity extends BaseActionBarActivity {
       dialog.show();
     }
 
-    private void saveNumberToFile(final Context context, final String e164number) {
-      // TODO Steffi: save parents number to whitelist as JSON Array
-      FileHelper.writeDataToFile(context, e164number, FileHelper.parentsFileName);
-      FileHelper.writeDataToFile(context, e164number, FileHelper.contactsFileName);
-    }
-
-    private String readNumberFromFile(final Context context) {
-      return FileHelper.readDataFromFile(context, FileHelper.parentsFileName);
-    }
-
     private void promptForNoPlayServices(final Context context, final String e164number) {
       AlertDialog.Builder dialog = new AlertDialog.Builder(context);
       dialog.setTitle(R.string.RegistrationActivity_missing_google_play_services);
@@ -455,6 +460,35 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
       if (!TextUtils.isEmpty(regionCode) && !regionCode.equals("ZZ")) {
         number.requestFocus();
+      }
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+    }
+  }
+
+  private class ParentsCountryCodeChangedListener implements TextWatcher {
+    @Override
+    public void afterTextChanged(Editable s) {
+      if (TextUtils.isEmpty(s)) {
+        setCountryDisplay(getString(R.string.RegistrationActivity_select_your_country));
+        countryFormatter = null;
+        return;
+      }
+
+      int countryCode = Integer.parseInt(s.toString());
+      String regionCode = PhoneNumberUtil.getInstance().getRegionCodeForCountryCode(countryCode);
+
+      setCountryFormatter(countryCode);
+      setCountryDisplay(PhoneNumberFormatter.getRegionDisplayName(regionCode));
+
+      if (!TextUtils.isEmpty(regionCode) && !regionCode.equals("ZZ")) {
+        parentsNumber.requestFocus();
       }
     }
 

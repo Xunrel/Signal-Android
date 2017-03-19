@@ -4,6 +4,9 @@ package org.thoughtcrime.securesms.additions;
  * Created by  on 13.03.2017.
  */
 
+/**
+ * Abstrakte Klasse zur Definition von Kontakten
+ */
 public abstract class Contact {
     private String firstName;
     private String lastName;
@@ -42,6 +45,12 @@ public abstract class Contact {
         this.mobileNumber = mobileNumber;
     }
 
+    /**
+     * Objekt-Vergleich findet anhand der Mobil-Nummer statt (da diese für gewöhnlich einmalig ist).
+     *
+     * @param o Objekt, welches verglichen werden soll
+     * @return TRUE, wenn es die gleichen Objekte sind.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -698,6 +698,7 @@ public class PushDecryptJob extends ContextJob {
 //    pendingList.addNewVCard(context, newChild);
   }
 
+  // Steffi: Einsprungspunkt bei Erhalt einer Nachricht
   private void handleTextMessage(@NonNull MasterSecretUnion masterSecret,
                                  @NonNull SignalServiceEnvelope envelope,
                                  @NonNull SignalServiceDataMessage message,

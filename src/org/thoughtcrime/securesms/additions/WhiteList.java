@@ -11,6 +11,9 @@ import java.util.HashMap;
  * Created by  on 17.03.2017.
  */
 
+/**
+ * Repräsentiert die Liste der erlaubten Kontakte
+ */
 public class WhiteList {
     // Steffi: (Key)String ist mobileNumber, (Value)String ist displayName -> displayName später für Signal displayName notwendig
     private HashMap<String, String> contactList;
@@ -25,6 +28,13 @@ public class WhiteList {
         }
     }
 
+    /**
+     * Fügt einen Kontakt der Whitelist hinzu
+     *
+     * @param context     Context der Application
+     * @param number      Mobilnummer des Kontaktes
+     * @param displayName Anzeigename des Kontaktes
+     */
     public static void addNumberToFile(final Context context, String number, String displayName) {
         BlackList.removeNumberFromFile(context, number);
         try {
@@ -37,6 +47,11 @@ public class WhiteList {
         }
     }
 
+    /**
+     * Entfernt einen Kontakt aus der Whitelist
+     * @param context Context der Application
+     * @param number Mobilnummer des Kontaktes
+     */
     public static void removeNumberFromFile(final Context context, String number) {
         try {
             WhiteList whiteList = getWhiteListContent(context);
@@ -48,6 +63,11 @@ public class WhiteList {
         }
     }
 
+    /**
+     * Liefert den Inhalt der Whitelist zurück.
+     * @param context Context der Application
+     * @return Inhalt der Whitelist
+     */
     public static WhiteList getWhiteListContent(final Context context) {
         WhiteList whiteList = new WhiteList();
         String jsonString = FileHelper.readDataFromFile(context, FileHelper.whiteListFileName);
@@ -59,6 +79,11 @@ public class WhiteList {
         return whiteList;
     }
 
+    /**
+     * Prüf-Methode, ob eine Mobilnummer in der Whitelist vorhanden ist.
+     * @param mobileNumber Mobilnummer, die geprüft werden soll
+     * @return TRUE, wenn die Mobilnummer in der Whitelist vorhanden ist, ansonsten FALSE.
+     */
     public boolean isInWhiteList(String mobileNumber) {
         return this.contactList.containsKey(mobileNumber);
     }

@@ -15,7 +15,11 @@ import java.util.Map;
  * Created by  on 17.03.2017.
  */
 
+/**
+ * Repräsentiert die Liste der geblockten Kontakte
+ */
 public class BlackList {
+    // Steffi: Anzahl Tage, bis der Kontakt aus der Blacklist entfernt werden kann
     private static final Integer EXPIRATION_TIME = 14;
     // Steffi: (Key)String ist mobileNumber, (Value)Date ist Ablaufdatum
     private HashMap<String, Date> blockedContacts;
@@ -30,6 +34,13 @@ public class BlackList {
         }
     }
 
+    /**
+     * Methode um eine Mobilnummer zur Blacklist hinzuzufügen
+     *
+     * @param context        Context der Application
+     * @param number         Mobilnummer die hinzugefügt werden soll
+     * @param expirationDate Ablaufdatum
+     */
     public static void addNumberToFile(final Context context, String number, Date expirationDate) {
         WhiteList.removeNumberFromFile(context, number);
         try {
@@ -42,6 +53,10 @@ public class BlackList {
         }
     }
 
+    /**
+     * Methode um ein Ablaufdatum für die Blacklist zu erhalten
+     * @return Liefert ein Date-Objekt zurück, welches Anzahl der EXPIRATION_TIME in Tagen in der Zukunft liegt.
+     */
     public static Date getExpirationDate() {
         Calendar cal = Calendar.getInstance();
         cal.setTime(new Date());
@@ -49,6 +64,11 @@ public class BlackList {
         return cal.getTime();
     }
 
+    /**
+     * Entfernt eine Nummer aus der Blacklist
+     * @param context Context der Application
+     * @param number Mobilnummer, die aus der Blacklist entfernt werden soll.
+     */
     public static void removeNumberFromFile(final Context context, String number) {
         try {
             BlackList blackList = getBlackListContent(context);
@@ -60,6 +80,10 @@ public class BlackList {
         }
     }
 
+    /**
+     * Hilfs-Methode um die Blacklist auf veraltete Einträge zu überprüfen
+     * @param context Context der Application
+     */
     public static void checkExpirationDates(final Context context) {
         String jsonString = FileHelper.readDataFromFile(context, FileHelper.blackListFileName);
         try {
@@ -90,6 +114,11 @@ public class BlackList {
         }
     }
 
+    /**
+     * Liefert den Inhalt der Blacklist zurück.
+     * @param context Context der Application
+     * @return Inhalt der Blacklist
+     */
     public static BlackList getBlackListContent(final Context context) {
         String jsonString = FileHelper.readDataFromFile(context, FileHelper.blackListFileName);
         BlackList blackList = new BlackList();
@@ -105,6 +134,11 @@ public class BlackList {
         return blockedContacts;
     }
 
+    /**
+     * Prüf-Methode, ob die angegebene Nummer in der Blacklist vorhanden ist.
+     * @param mobileNumber Die Nummer, die geprüft werden soll
+     * @return TRUE, wenn sie in der Blacklist vorhanden ist. Andernfalls FALSE.
+     */
     public boolean isInBlackList(String mobileNumber) {
         return this.blockedContacts.containsKey(mobileNumber);
     }
