@@ -76,16 +76,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Vorname" />
+            android:hint="Vorname"
+            android:inputType="textPersonName"/>
 
         <EditText
             android:id="@+id/childLastName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Nachname" />
+            android:hint="Nachname"
+            android:inputType="textPersonName"/>
 
         <TextView style="@style/Registration.Description"
                   android:layout_width="fill_parent"
@@ -146,16 +146,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Vorname" />
+            android:hint="Vorname"
+            android:inputType="textPersonName"/>
 
         <EditText
             android:id="@+id/parentLastName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Nachname" />
+            android:hint="Nachname"
+            android:inputType="textPersonName"/>
 
         <TextView
             android:id="@+id/textView4"
