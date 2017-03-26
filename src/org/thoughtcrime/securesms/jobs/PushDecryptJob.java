@@ -2,6 +2,7 @@ package org.thoughtcrime.securesms.jobs;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
@@ -30,8 +31,10 @@ import org.thoughtcrime.securesms.database.MessagingDatabase.InsertResult;
 import org.thoughtcrime.securesms.database.MessagingDatabase.SyncMessageId;
 import org.thoughtcrime.securesms.database.MmsDatabase;
 import org.thoughtcrime.securesms.database.NoSuchMessageException;
+import org.thoughtcrime.securesms.database.NotInDirectoryException;
 import org.thoughtcrime.securesms.database.PushDatabase;
 import org.thoughtcrime.securesms.database.SmsDatabase;
+import org.thoughtcrime.securesms.database.TextSecureDirectory;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.groups.GroupMessageProcessor;
 import org.thoughtcrime.securesms.mms.IncomingMediaMessage;
@@ -39,6 +42,7 @@ import org.thoughtcrime.securesms.mms.OutgoingExpirationUpdateMessage;
 import org.thoughtcrime.securesms.mms.OutgoingMediaMessage;
 import org.thoughtcrime.securesms.mms.OutgoingSecureMediaMessage;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.service.KeyCachingService;
@@ -47,6 +51,8 @@ import org.thoughtcrime.securesms.sms.IncomingEncryptedMessage;
 import org.thoughtcrime.securesms.sms.IncomingEndSessionMessage;
 import org.thoughtcrime.securesms.sms.IncomingPreKeyBundleMessage;
 import org.thoughtcrime.securesms.sms.IncomingTextMessage;
+import org.thoughtcrime.securesms.sms.MessageSender;
+import org.thoughtcrime.securesms.sms.OutgoingEncryptedMessage;
 import org.thoughtcrime.securesms.sms.OutgoingTextMessage;
 import org.thoughtcrime.securesms.util.Base64;
 import org.thoughtcrime.securesms.util.GroupUtil;
@@ -86,7 +92,9 @@ import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import ws.com.google.android.mms.MmsException;
@@ -636,26 +644,104 @@ public class PushDecryptJob extends ContextJob {
   }
 
   // Angefragte Liste anfordern
-  private void listContent(String message, String source) {
+  private void listContent(String message, String source, Recipients recipients) {
     String listName = MessageHelper.getListNameFromMessage(message);
+    String messageText = "";
     // TODO Steffi: Methode implementieren, um angefragte Liste zurück zu liefern
-    switch (listName) {
-      case "blacklist":
-        break;
-      case "whitelist":
-        break;
-      case "pendinglist":
-        break;
-      default:
-        break;
+    try {
+      switch (listName) {
+        case "block":
+          messageText += "Folgende Einträge befinden sich in der blockierten Liste:\n";
+          BlackList blackList = BlackList.getBlackListContent(context);
+          HashMap<String, Date> contacts = blackList.getBlockedContacts();
+          for (Map.Entry<String, Date> c : contacts.entrySet()) {
+            messageText += String.format("\nNummer: %1$s , Läuft ab: %2$s\n", c.getKey(), c.getValue() != null ? c.getValue() : "Nie");
+          }
+          break;
+        case "erlaubt":
+          messageText += "Folgende Einträge befinden sich in der erlaubten Liste:\n";
+          WhiteList whiteList = WhiteList.getWhiteListContent(context);
+          HashMap<String, String> whiteContacts = whiteList.getContactList();
+          for (Map.Entry<String, String> c : whiteContacts.entrySet()) {
+            messageText += String.format("\nNummer: %1$s , Name: %2$s\n", c.getKey(), c.getValue());
+          }
+          break;
+        case "wartet":
+          messageText += "Folgende Einträge sind auf der Warteliste:\n";
+          PendingList pendingList = PendingList.getPendingListContent(context);
+          HashMap<Integer, VCard> pendingContacts = pendingList.getPendingVCards();
+          for (Map.Entry<Integer, VCard> c : pendingContacts.entrySet()) {
+            messageText += String.format("\nID: %1$d - Nummer: %2$s , Name: %3$s\n",
+                    c.getKey(),
+                    c.getValue().getMobileNumber(),
+                    c.getValue().getFirstName() + " " + c.getValue().getLastName());
+          }
+          break;
+        default:
+          messageText = String.format("Liste mit dem Namen %1$s ist nicht verfügbar", listName);
+          break;
+      }
+      if (!message.isEmpty()) {
+        SendMessage(messageText, source, recipients);
+      } else {
+        return;
+      }
+    } catch (NotInDirectoryException nide) {
+      nide.printStackTrace();
     }
   }
 
-  private void sendHelpMessage(String source) {
-
+  private void sendHelpMessage(String source, Recipients recipients) {
+    try {
+      //TODO Steffi: ausführlich den list-Befehl beschreiben
+      String helpMessageText = "Sie können folgende Kommandos nutzen:\n\n!@ ok ID - Kontakt bestätigen\n\n!@ block ID - Kontakt für 2 Wochen blocken\n\n!@ block ID perm - Kontakt permanent blockieren\n\n!@ new NUMMER ANZEIGENAME - neue Nummer mit Anzeigenamen hinzufügen\n\n!@ list LISTENNAME - Liste ";
+      SendMessage(helpMessageText, source, recipients);
+    } catch (NotInDirectoryException nide) {
+      nide.printStackTrace();
+    }
   }
 
-  private void validateSpecialMessage(String message, String source) {
+  /**
+   * Hilfsmethode zum Versenden einer Text-Nachricht als Antwort auf ein Spezial-Kommando
+   *
+   * @param messageText
+   * @param recipients
+   * @throws NotInDirectoryException
+   */
+  private void SendMessage(String messageText, String source, Recipients recipients) throws NotInDirectoryException {
+    final MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
+    boolean isSecureText = TextSecureDirectory.getInstance(context).isSecureTextSupported(source);
+
+    OutgoingTextMessage message = null;
+
+    // TODO Steffi: subscriptionId ermitteln
+    long expiresIn = -1;
+    int subscriptionId = 0;
+
+    if (isSecureText) {
+      message = new OutgoingEncryptedMessage(recipients, messageText, expiresIn);
+    } else {
+      message = new OutgoingTextMessage(recipients, messageText, expiresIn, subscriptionId);
+    }
+
+
+    // TODO Steffi: threadId ermitteln
+    new AsyncTask<OutgoingTextMessage, Void, Long>() {
+      @Override
+      protected Long doInBackground(OutgoingTextMessage... messages) {
+        // TODO Steffi: threadId ermitteln <- wird das noch benötigt?
+        long threadId = 0;
+        return MessageSender.send(context, masterSecret, messages[0], threadId, false);
+      }
+
+      @Override
+      protected void onPostExecute(Long result) {
+
+      }
+    }.execute(message);
+  }
+
+  private void validateSpecialMessage(String message, String source, Recipients recipients) {
     String code = MessageHelper.getCommandFromMessage(message);
 
     switch (code) {
@@ -669,13 +755,23 @@ public class PushDecryptJob extends ContextJob {
         addNewContact(message);
         break;
       case "list":
-        listContent(message, source);
+        listContent(message, source, recipients);
         break;
       case "help":
-        sendHelpMessage(source);
+        sendHelpMessage(source, recipients);
+        break;
+      case "remove":
+        removeByNumber(message);
       default:
         break;
     }
+  }
+
+  private void removeByNumber(String message) {
+    String number = MessageHelper.getNumberFromMessageForRemoval(message);
+    WhiteList.removeNumberFromFile(context, number);
+    BlackList.removeNumberFromFile(context, number);
+    PendingList.removeVCardByNumber(context, number);
   }
 
   private void createWhiteList(final Context context) throws IOException {
@@ -699,6 +795,7 @@ public class PushDecryptJob extends ContextJob {
   }
 
   // Steffi: Einsprungspunkt bei Erhalt einer Nachricht
+  // \n ist newLine
   private void handleTextMessage(@NonNull MasterSecretUnion masterSecret,
                                  @NonNull SignalServiceEnvelope envelope,
                                  @NonNull SignalServiceDataMessage message,
@@ -727,6 +824,7 @@ public class PushDecryptJob extends ContextJob {
 //      e.printStackTrace();
 //    }
 
+    Recipient r = recipients.getPrimaryRecipient();
     //TODO Steffi: Prüfe, ob Sender in der Whitelist ist
     // Wenn nicht, dann droppe Nachricht (sprich: return;)
     if (!isInWhiteList(source)) return;
@@ -736,7 +834,7 @@ public class PushDecryptJob extends ContextJob {
     if (isFromParents(source)) {
       if (isSpecialMessage(body)) {
         // Prüge Nachricht auf SpecialCode und verarbeite diesen dann
-        validateSpecialMessage(body, source);
+        validateSpecialMessage(body, source, recipients);
         // Nachricht droppen:
         return;
       }

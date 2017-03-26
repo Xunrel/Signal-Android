@@ -71,6 +71,28 @@ public class PendingList {
         return vCard;
     }
 
+    public static VCard removeVCardByNumber(final Context context, String number) {
+        VCard vCard = null;
+
+        try {
+            PendingList pendingList = getPendingListContent(context);
+
+            for (Map.Entry<Integer, VCard> v : pendingList.getPendingVCards().entrySet()) {
+                if (v.getValue().getMobileNumber().equals(number)) {
+                    vCard = pendingList.getPendingVCards().remove(v.getKey());
+                    break;
+                }
+            }
+
+            String jsonString = JsonUtils.toJson(pendingList);
+            FileHelper.writeDataToFile(context, jsonString, FileHelper.pendingListFileName);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+
+        return vCard;
+    }
+
     /**
      * Hilfs-Methode um die Pendinglist auf veraltete Einträge zu überprüfen
      * @param context Context der Application

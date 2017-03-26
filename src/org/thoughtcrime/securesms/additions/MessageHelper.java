@@ -7,6 +7,7 @@ package org.thoughtcrime.securesms.additions;
 /**
  * Hilfs-Klasse um Spezial-Kommandos aus einer Nachricht zu interpretieren.
  */
+// TODO steffi: List-Kommando darf nur "erlaubt","block" oder "wartet" beinhalten als Listennamen
 public final class MessageHelper {
     // Steffi: Konventionen ->
     // "!@ COMMAND PARAMS"
@@ -15,6 +16,8 @@ public final class MessageHelper {
     // "!@ new NUMBER DISPLAYNAME"
     // "!@ list LISTNAME"
     // "!@ help"
+    // TODO Steffi:
+    // "!@ remove Number"
 
     /**
      * Prefix, um ein Kommando zu identifizieren
@@ -39,7 +42,22 @@ public final class MessageHelper {
     public static String getNumberFromMessage(String message) {
         String[] messageParts = getMessageParts(message);
         String number = "";
-        if (messageParts.length == 3) {
+        if (messageParts.length > 2) {
+            number = messageParts[1];
+        }
+        return number;
+    }
+
+    /**
+     * Liefert die Nummer aus der Nachricht mit einem Spezial-Kommando zurück
+     *
+     * @param message Die Nachricht, aus der die Nummer ermittelt werden soll
+     * @return Liefert die Nummer aus der Nachricht zurück.
+     */
+    public static String getNumberFromMessageForRemoval(String message) {
+        String[] messageParts = getMessageParts(message);
+        String number = "";
+        if (messageParts.length > 1) {
             number = messageParts[1];
         }
         return number;
@@ -52,11 +70,14 @@ public final class MessageHelper {
      */
     public static String getDisplayNameFromMessage(String message) {
         String[] messageParts = getMessageParts(message);
-        String number = "";
-        if (messageParts.length == 3) {
-            number = messageParts[2];
+        String displayName = "";
+        if (messageParts.length > 3) {
+            displayName = messageParts[2];
+            if (messageParts.length == 4) {
+                displayName += " " + messageParts[3];
+            }
         }
-        return number;
+        return displayName;
     }
 
     private static String[] getMessageParts(String message) {

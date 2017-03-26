@@ -259,7 +259,9 @@ public class RegistrationActivity extends BaseActionBarActivity {
       }
 
       // Steffi: Erstellung der persönlichen VCard
-      ParentsContact parentsContact = new ParentsContact(parentFirstName.getText().toString(), parentLastName.getText().toString(), e164parentNumber);
+      String pFirstName = parentFirstName.getText().toString();
+      String pLastName = parentLastName.getText().toString();
+      ParentsContact parentsContact = new ParentsContact(pFirstName, pLastName, e164parentNumber);
       VCard personalVCard = new VCard(childFirstName.getText().toString(), childLastName.getText().toString(), e164number);
       personalVCard.addParent(parentsContact);
 
@@ -267,7 +269,8 @@ public class RegistrationActivity extends BaseActionBarActivity {
       createFiles(self);
       // TODO Steffi: Ändern des DisplayNamens der Eltern zu Mama und/oder Papa
       // Mobilnummer des angegebenen Eltern-Kontaktes wird direkt der Whitelist hinzugefügt
-      WhiteList.addNumberToFile(self, e164parentNumber, parentFirstName + " " + parentLastName);
+      WhiteList.addNumberToFile(self, e164parentNumber, pFirstName + " " + pLastName);
+      // TODO Steffi: Füge ersten Parent-Kontakt in die DB hinzu
       createVCard(self, personalVCard);
 
       PlayServicesStatus gcmStatus = checkPlayServices(self);

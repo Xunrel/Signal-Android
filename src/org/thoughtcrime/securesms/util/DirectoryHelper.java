@@ -16,6 +16,7 @@ import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.additions.FileHelper;
 import org.thoughtcrime.securesms.additions.ParentsContact;
 import org.thoughtcrime.securesms.additions.VCard;
+import org.thoughtcrime.securesms.additions.WhiteList;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.SessionUtil;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
@@ -78,22 +79,29 @@ public class DirectoryHelper {
     List<ContactTokenDetails> activeTokensToRemove = new ArrayList<>();
 
     // TODO Steffi: use the following lines to read from whitelist
-//    String whiteListContent = fileHelper.readDataFromFile(context, fileHelper.whiteListFileName);
+//    String whiteListContent = FileHelper.readDataFromFile(context, FileHelper.whiteListFileName);
 //    ArrayList<String> whiteListNumbers = JsonUtils.fromJson(whiteListContent, ArrayList.class);
+    WhiteList whiteList = WhiteList.getWhiteListContent(context);
 
     if (activeTokens != null) {
       for (ContactTokenDetails activeToken : activeTokens) {
-//          for(String number : whiteListNumbers)
-        // TODO Steffi: refactor this to check against whiteListNumbers
-        for (ParentsContact p : child.getParents()) {
-          if (p.getMobileNumber().equals(activeToken.getNumber())) {
+        for (String number : whiteList.getContactList().keySet())
+          // TODO Steffi: refactor this to check against whiteListNumbers
+          if (number.equals(activeToken.getNumber())) {
             eligibleContactNumbers.remove(activeToken.getNumber());
             activeToken.setNumber(activeToken.getNumber());
             break;
           } else {
-            activeTokensToRemove.add(activeToken);
+            for (ParentsContact p : child.getParents()) {
+              if (p.getMobileNumber().equals(activeToken.getNumber())) {
+                eligibleContactNumbers.remove(activeToken.getNumber());
+                activeToken.setNumber(activeToken.getNumber());
+                break;
+              } else {
+                activeTokensToRemove.add(activeToken);
+              }
+            }
           }
-        }
       }
 
       for (ContactTokenDetails ctd : activeTokensToRemove) {
