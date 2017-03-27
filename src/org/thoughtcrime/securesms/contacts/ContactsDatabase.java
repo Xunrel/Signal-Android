@@ -35,6 +35,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.additions.WhiteList;
 import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.push.ContactTokenDetails;
@@ -97,13 +98,23 @@ public class ContactsDatabase {
       if (!currentContacts.containsKey(registeredNumber)) {
         Optional<SystemContactInfo> systemContactInfo = getSystemContactInfo(registeredNumber, localNumber);
 
+        String displayname = "";
+        String numberKey = systemContactInfo.get().number.replace(" ", "");
+        WhiteList whiteList = WhiteList.getWhiteListContent(context);
+        if (whiteList.isInWhiteList(numberKey)) {
+          displayname = whiteList.getContactList().get(numberKey);
+        }
+        if (displayname.isEmpty()) {
+          displayname = systemContactInfo.get().name;
+        }
+
         if (systemContactInfo.isPresent()) {
           Log.w(TAG, "Adding number: " + registeredNumber);
           addedNumbers.add(registeredNumber);
           // TODO Steffi: systemContactInfo.get().number nutzen um DisplayNamen zu identifizieren
           addTextSecureRawContact(operations, account, systemContactInfo.get().number,
                   // TODO Steffi: statt 'systemContactInfo.get().name' wird name aus der whitelist genutzt
-                                  systemContactInfo.get().name, systemContactInfo.get().id,
+                  displayname, systemContactInfo.get().id,
                                   true);
         }
       }

@@ -18,11 +18,6 @@ import java.io.InputStreamReader;
  * Inhalt der Dateien sind im JSON Format.
  */
 public final class FileHelper {
-
-    // TODO Steffi: Entfernen dieser Properties
-    public static String contactsFileName = "contacts";
-    public static String parentsFileName = "parents";
-
     public static String vCardFileName = "vCard";
     public static String whiteListFileName = "whiteList";
     public static String pendingListFileName = "pendingList";

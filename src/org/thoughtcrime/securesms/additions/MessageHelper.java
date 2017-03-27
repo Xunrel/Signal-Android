@@ -7,7 +7,7 @@ package org.thoughtcrime.securesms.additions;
 /**
  * Hilfs-Klasse um Spezial-Kommandos aus einer Nachricht zu interpretieren.
  */
-// TODO steffi: List-Kommando darf nur "erlaubt","block" oder "wartet" beinhalten als Listennamen
+// Steffi: List-Kommando darf nur "erlaubt","block" oder "wartet" beinhalten als Listennamen
 public final class MessageHelper {
     // Steffi: Konventionen ->
     // "!@ COMMAND PARAMS"

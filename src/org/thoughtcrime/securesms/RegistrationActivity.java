@@ -70,6 +70,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
   private TextView parentsNumber;
   private TextView parentFirstName;
   private TextView parentLastName;
+  private TextView parentDisplayname;
 
   @Override
   public void onCreate(Bundle icicle) {
@@ -108,6 +109,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
     this.parentsNumber = (TextView) findViewById(R.id.parents_number);
     this.parentFirstName = (TextView) findViewById(R.id.parentFirstName);
     this.parentLastName = (TextView) findViewById(R.id.parentLastName);
+    this.parentDisplayname = (TextView) findViewById(R.id.parentDisplayname);
 
     this.countryCode.addTextChangedListener(new CountryCodeChangedListener());
     this.number.addTextChangedListener(new NumberChangedListener());
@@ -261,6 +263,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
       // Steffi: Erstellung der persönlichen VCard
       String pFirstName = parentFirstName.getText().toString();
       String pLastName = parentLastName.getText().toString();
+      String pDisplayname = parentDisplayname.getText().toString();
       ParentsContact parentsContact = new ParentsContact(pFirstName, pLastName, e164parentNumber);
       VCard personalVCard = new VCard(childFirstName.getText().toString(), childLastName.getText().toString(), e164number);
       personalVCard.addParent(parentsContact);
@@ -269,7 +272,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
       createFiles(self);
       // TODO Steffi: Ändern des DisplayNamens der Eltern zu Mama und/oder Papa
       // Mobilnummer des angegebenen Eltern-Kontaktes wird direkt der Whitelist hinzugefügt
-      WhiteList.addNumberToFile(self, e164parentNumber, pFirstName + " " + pLastName);
+      WhiteList.addNumberToFile(self, e164parentNumber, pDisplayname);
       // TODO Steffi: Füge ersten Parent-Kontakt in die DB hinzu
       createVCard(self, personalVCard);
 

@@ -218,7 +218,7 @@ public class DirectoryHelper {
 
     if (account.isPresent()) {
       try {
-        // TODO Steffi: Bereits bei Signal registrierte Kontakte, die auch in der eigenen Kontaktliste vorkommen, werden hier hinzugefügt
+        // Steffi: Bereits bei Signal registrierte Kontakte, die auch in der eigenen Kontaktliste vorkommen, werden hier hinzugefügt
         List<String> newUsers = DatabaseFactory.getContactsDatabase(context)
                                                .setRegisteredUsers(account.get().getAccount(), localNumber, activeTokens, removeMissing);
 
