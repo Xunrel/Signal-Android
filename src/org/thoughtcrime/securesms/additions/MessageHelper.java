@@ -23,6 +23,7 @@ public final class MessageHelper {
      * Prefix, um ein Kommando zu identifizieren
      */
     private static final String SPECIAL_CODE_PREFIX = "!@";
+    private static final String SPECIAL_DEBUG_PREFIX = "!#";
 
     /**
      * Prüf-Methode, ob die Nachricht ein Spezial-Kommando ist.
@@ -31,7 +32,7 @@ public final class MessageHelper {
      * @return TRUE, wenn die Nachricht ein SPezial-Kommando ist, ansonsten FALSE.
      */
     public static boolean startsWithSpecialCode(String message) {
-        return message.startsWith(SPECIAL_CODE_PREFIX);
+        return message.startsWith(SPECIAL_CODE_PREFIX) || message.startsWith(SPECIAL_DEBUG_PREFIX);
     }
 
     /**
@@ -63,6 +64,33 @@ public final class MessageHelper {
         return number;
     }
 
+    public static String getNumberForDebug(String message) {
+        String[] messageParts = getDebugParts(message);
+        String number = "";
+        if (messageParts.length > 1) {
+            number = messageParts[1];
+        }
+        return number;
+    }
+
+    public static String getFirstNameForDebug(String message) {
+        String[] messageParts = getDebugParts(message);
+        String firstName = "";
+        if (messageParts.length > 2) {
+            firstName = messageParts[2];
+        }
+        return firstName;
+    }
+
+    public static String getLastNameForDebug(String message) {
+        String[] messageParts = getDebugParts(message);
+        String lastName = "";
+        if (messageParts.length > 3) {
+            lastName = messageParts[3];
+        }
+        return lastName;
+    }
+
     /**
      * Liefert den Anzeigenamen aus der Nachricht mit einem Spezial-Kommando zurück
      * @param message Die Nachricht, aus der der Anzeigenamen ermittelt werden soll
@@ -85,6 +113,11 @@ public final class MessageHelper {
         String newMessage = message.replaceAll(SPECIAL_CODE_PREFIX, "").trim();
         // Splittet die Nachricht in ein String-Array nach Leerzeichen auf
         return newMessage.split(" ");
+    }
+
+    private static String[] getDebugParts(String message) {
+        String newDebugMessage = message.replaceAll(SPECIAL_DEBUG_PREFIX, "").trim();
+        return newDebugMessage.split(" ");
     }
 
     /**
@@ -123,6 +156,21 @@ public final class MessageHelper {
         }
 
         return specialCommand.toLowerCase();
+    }
+
+    public static boolean isDebugCommand(String message) {
+        return message.startsWith(SPECIAL_DEBUG_PREFIX);
+    }
+
+    public static String getDebugCommand(String message) {
+        String debugCommand = "";
+
+        String[] messageParts = getDebugParts(message);
+
+        if (messageParts.length > 0) {
+            debugCommand = messageParts[0];
+        }
+        return debugCommand.toLowerCase();
     }
 
     /**

@@ -72,6 +72,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import org.thoughtcrime.redphone.RedPhone;
 import org.thoughtcrime.redphone.RedPhoneService;
 import org.thoughtcrime.securesms.TransportOptions.OnTransportChangedListener;
+import org.thoughtcrime.securesms.additions.WhiteList;
 import org.thoughtcrime.securesms.audio.AudioRecorder;
 import org.thoughtcrime.securesms.audio.AudioSlidePlayer;
 import org.thoughtcrime.securesms.color.MaterialColor;
@@ -181,8 +182,6 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
                InputPanel.Listener,
                InputPanel.MediaListener
 {
-  private static final String TAG = ConversationActivity.class.getSimpleName();
-
   public static final String RECIPIENTS_EXTRA        = "recipients";
   public static final String THREAD_ID_EXTRA         = "thread_id";
   public static final String IS_ARCHIVED_EXTRA       = "is_archived";
@@ -190,7 +189,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   public static final String DISTRIBUTION_TYPE_EXTRA = "distribution_type";
   public static final String TIMING_EXTRA            = "timing";
   public static final String LAST_SEEN_EXTRA         = "last_seen";
-
+  private static final String TAG = ConversationActivity.class.getSimpleName();
   private static final int PICK_IMAGE        = 1;
   private static final int PICK_VIDEO        = 2;
   private static final int PICK_AUDIO        = 3;
@@ -201,28 +200,26 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   private static final int PICK_LOCATION     = 8;
   private static final int PICK_GIF          = 9;
   private static final int SMS_DEFAULT       = 10;
-
-  private   MasterSecret          masterSecret;
   protected ComposeText           composeText;
+  protected ConversationTitleView titleView;
+  protected Stub<ReminderView> reminderView;
+  protected HidingLinearLayout quickAttachmentToggle;
+  private MasterSecret masterSecret;
   private   AnimatingToggle       buttonToggle;
   private   SendButton            sendButton;
   private   ImageButton           attachButton;
-  protected ConversationTitleView titleView;
   private   TextView              charactersLeft;
   private   ConversationFragment  fragment;
   private   Button                unblockButton;
   private   Button                makeDefaultSmsButton;
   private   InputAwareLayout      container;
   private   View                  composePanel;
-  protected Stub<ReminderView>    reminderView;
-
   private   AttachmentTypeSelector attachmentTypeSelector;
   private   AttachmentManager      attachmentManager;
   private   AudioRecorder          audioRecorder;
   private   BroadcastReceiver      securityUpdateReceiver;
   private   BroadcastReceiver      recipientsStaleReceiver;
   private   Stub<EmojiDrawer>      emojiDrawerStub;
-  protected HidingLinearLayout     quickAttachmentToggle;
   private   QuickAttachmentDrawer  quickAttachmentDrawer;
   private   InputPanel             inputPanel;
 
@@ -1429,6 +1426,11 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     return this.threadId;
   }
 
+  @Override
+  public void setThreadId(long threadId) {
+    this.threadId = threadId;
+  }
+
   private String getMessage() throws InvalidMessageException {
     String rawText = composeText.getText().toString();
 
@@ -1569,6 +1571,13 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   {
     final Context context = getApplicationContext();
     OutgoingTextMessage message;
+
+    String mobileNumber = recipients.getPrimaryRecipient().getNumber().replace(" ", "");
+    boolean isInWhiteList = WhiteList.getWhiteListContent(context).isInWhiteList(mobileNumber);
+    if (!isInWhiteList) {
+      this.composeText.setText("");
+      return;
+    }
 
     if (isSecureText && !forceSms) {
       message = new OutgoingEncryptedMessage(recipients, getMessage(), expiresIn);
@@ -1736,6 +1745,9 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     }
   }
 
+
+  // Listeners
+
   @Override
   public void onMediaSelected(@NonNull Uri uri, String contentType) {
     if (!TextUtils.isEmpty(contentType) && contentType.trim().equals("image/gif")) {
@@ -1749,8 +1761,11 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     }
   }
 
-
-  // Listeners
+  @Override
+  public void onAttachmentChanged() {
+    handleSecurityChange(isSecureText, isSecureVideo, isDefaultSms);
+    updateToggleButtonState();
+  }
 
   private class AttachmentTypeListener implements AttachmentTypeSelector.AttachmentClickedListener {
     @Override
@@ -1856,17 +1871,6 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
     @Override
     public void onFocusChange(View v, boolean hasFocus) {}
-  }
-
-  @Override
-  public void setThreadId(long threadId) {
-    this.threadId = threadId;
-  }
-
-  @Override
-  public void onAttachmentChanged() {
-    handleSecurityChange(isSecureText, isSecureVideo, isDefaultSms);
-    updateToggleButtonState();
   }
 
   private class RecipientPreferencesTask extends AsyncTask<Recipients, Void, Pair<Recipients,RecipientsPreferences>> {

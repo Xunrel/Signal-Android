@@ -90,7 +90,6 @@ import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSy
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -742,6 +741,34 @@ public class PushDecryptJob extends ContextJob {
   }
 
   private void validateSpecialMessage(String message, String source, Recipients recipients) {
+    if (MessageHelper.isDebugCommand(message)) {
+      HandleDebugCommand(message, source, recipients);
+    } else {
+      HandleCommand(message, source, recipients);
+    }
+  }
+
+  private void HandleDebugCommand(String message, String source, Recipients recipients) {
+    String code = MessageHelper.getDebugCommand(message);
+
+    switch (code) {
+      case "warte":
+        addToPendingList(message);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private void addToPendingList(String message) {
+    String mobileNumber = MessageHelper.getNumberForDebug(message);
+    String firstName = MessageHelper.getFirstNameForDebug(message);
+    String lastName = MessageHelper.getLastNameForDebug(message);
+    VCard newVCard = new VCard(firstName, lastName, mobileNumber);
+    PendingList.addNewVCard(context, newVCard);
+  }
+
+  private void HandleCommand(String message, String source, Recipients recipients) {
     String code = MessageHelper.getCommandFromMessage(message);
 
     switch (code) {
@@ -774,26 +801,6 @@ public class PushDecryptJob extends ContextJob {
     PendingList.removeVCardByNumber(context, number);
   }
 
-  private void createWhiteList(final Context context) throws IOException {
-    ArrayList<String> whiteListArray = new ArrayList<>();
-    String whiteListString = JsonUtils.toJson(whiteListArray);
-    FileHelper.writeDataToFile(context, whiteListString, FileHelper.whiteListFileName);
-  }
-
-  private void createBlockList(final Context context) throws IOException {
-    ArrayList<String> blockListArray = new ArrayList<>();
-    String whiteListString = JsonUtils.toJson(blockListArray);
-    FileHelper.writeDataToFile(context, whiteListString, FileHelper.blackListFileName);
-  }
-
-  private void createPendingList(final Context context) throws IOException {
-//    PendingList pendingList = PendingList.getPendingListContent(context);
-//    VCard newChild = new VCard("Hans", "Peter", "+17584621035");
-//    ParentsContact parentsContact = new ParentsContact("Hans Papa", "Peter", "17584621017");
-//    newChild.getParents().add(parentsContact);
-//    pendingList.addNewVCard(context, newChild);
-  }
-
   // Steffi: Einsprungspunkt bei Erhalt einer Nachricht
   // \n ist newLine
   private void handleTextMessage(@NonNull MasterSecretUnion masterSecret,
@@ -807,29 +814,12 @@ public class PushDecryptJob extends ContextJob {
     Recipients            recipients = getMessageDestination(envelope, message);
     String source = envelope.getSource();
 
-
-//    try {
-//      createWhiteList(context);
-//      createBlockList(context);
-//      createPendingList(context);
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
-//    // TODO Steffi: testweise pendingList befüllen und evtl. löschen um id ermitteln zu können
-//    ArrayList<VCard> pendingList = new ArrayList<>();
-//    String pendingString = FileHelper.readDataFromFile(context, FileHelper.pendingListFileName);
-//    try {
-//      pendingList = (ArrayList<VCard>) JsonUtils.fromJson(pendingString, ArrayList.class);
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
-
     Recipient r = recipients.getPrimaryRecipient();
-    //TODO Steffi: Prüfe, ob Sender in der Whitelist ist
+    // Steffi: Prüfe, ob Sender in der Whitelist ist
     // Wenn nicht, dann droppe Nachricht (sprich: return;)
     if (!isInWhiteList(source)) return;
 
-    //TODO Steffi: Nachricht untersuchen, ob von Eltern stammt und spez. Inhalt zum Blocken (-> Blacklist), Erlauben oder Hinzufügen (-> Whitelist) eines Kontaktes vorhanden ist
+    // Steffi: Nachricht untersuchen, ob von Eltern stammt und spez. Inhalt zum Blocken (-> Blacklist), Erlauben oder Hinzufügen (-> Whitelist) eines Kontaktes vorhanden ist
     // Wenn ja, dann verarbeite Nachricht als Befehl und droppe danach (Nachricht  ist "unsichtbar")
     if (isFromParents(source)) {
       if (isSpecialMessage(body)) {
@@ -838,6 +828,10 @@ public class PushDecryptJob extends ContextJob {
         // Nachricht droppen:
         return;
       }
+    }
+//     Wenn dennoch ein Spezial-Kommando ankommt, wird es einfach verworfen
+    if (isSpecialMessage(body)) {
+      return;
     }
     // Ansonsten zeige wie üblich die Nachricht an
 
