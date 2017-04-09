@@ -74,7 +74,7 @@ public class ContactsDatabase {
     this.context  = context;
   }
 
-  // TODO Steffi: Bereits bei Signal registrierte Benutzer dieses Kontaktes werden hinzugefügt
+  // Steffi: Bereits bei Signal registrierte Benutzer dieses Kontaktes werden hinzugefügt
   public synchronized @NonNull List<String> setRegisteredUsers(@NonNull Account account,
                                                                @NonNull String localNumber,
                                                                @NonNull List<ContactTokenDetails> registeredContacts,
@@ -87,7 +87,7 @@ public class ContactsDatabase {
     ArrayList<ContentProviderOperation> operations        = new ArrayList<>();
     Map<String, SignalContact>          currentContacts   = getSignalRawContacts(account, localNumber);
 
-    // TODO Steffi: whiteList auslesen und nummern und namen für update auslesen
+    // Steffi: whiteList auslesen und Nummern und Namen für Update auslesen
 
 
     for (ContactTokenDetails registeredContact : registeredContacts) {

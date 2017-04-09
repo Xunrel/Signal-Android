@@ -591,7 +591,7 @@ public class PushDecryptJob extends ContextJob {
     return MessageHelper.startsWithSpecialCode(message);
   }
 
-  // Blocken eines Contacts
+  // Blocken eines Kontakts
   private void blockContact(String message) {
     int id = MessageHelper.getIdFromMessage(message);
 
@@ -646,7 +646,7 @@ public class PushDecryptJob extends ContextJob {
   private void listContent(String message, String source, Recipients recipients) {
     String listName = MessageHelper.getListNameFromMessage(message);
     String messageText = "";
-    // TODO Steffi: Methode implementieren, um angefragte Liste zurück zu liefern
+    // Steffi: Methode, um angefragte Liste zurück zu liefern
     try {
       switch (listName) {
         case "block":
@@ -713,7 +713,7 @@ public class PushDecryptJob extends ContextJob {
 
     OutgoingTextMessage message = null;
 
-    // TODO Steffi: subscriptionId ermitteln
+    // Steffi: subscriptionId ermitteln
     long expiresIn = -1;
     int subscriptionId = 0;
 
@@ -724,11 +724,11 @@ public class PushDecryptJob extends ContextJob {
     }
 
 
-    // TODO Steffi: threadId ermitteln
+    // Steffi: threadId ermitteln
     new AsyncTask<OutgoingTextMessage, Void, Long>() {
       @Override
       protected Long doInBackground(OutgoingTextMessage... messages) {
-        // TODO Steffi: threadId ermitteln <- wird das noch benötigt?
+        // Steffi: threadId setzen
         long threadId = 0;
         return MessageSender.send(context, masterSecret, messages[0], threadId, false);
       }
@@ -823,7 +823,7 @@ public class PushDecryptJob extends ContextJob {
     // Wenn ja, dann verarbeite Nachricht als Befehl und droppe danach (Nachricht  ist "unsichtbar")
     if (isFromParents(source)) {
       if (isSpecialMessage(body)) {
-        // Prüge Nachricht auf SpecialCode und verarbeite diesen dann
+        // Prüfe Nachricht auf SpecialCode und verarbeite diesen dann
         validateSpecialMessage(body, source, recipients);
         // Nachricht droppen:
         return;
@@ -850,7 +850,7 @@ public class PushDecryptJob extends ContextJob {
                                                                 message.getGroupInfo(),
                                                                 message.getExpiresInSeconds() * 1000);
 
-      // TODO Steffi: Hier wird die Nachricht schlußendlich angezeigt
+      // Steffi: Hier wird die Nachricht schlussendlich angezeigt
       textMessage = new IncomingEncryptedMessage(textMessage, body);
       Optional<InsertResult> insertResult = database.insertMessageInbox(masterSecret, textMessage);
 
