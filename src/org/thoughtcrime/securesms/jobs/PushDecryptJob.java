@@ -649,7 +649,7 @@ public class PushDecryptJob extends ContextJob {
     // Steffi: Methode, um angefragte Liste zurück zu liefern
     try {
       switch (listName) {
-        case "block":
+        case "geblock":
           messageText += "Folgende Einträge befinden sich in der blockierten Liste:\n";
           BlackList blackList = BlackList.getBlackListContent(context);
           HashMap<String, Date> contacts = blackList.getBlockedContacts();
@@ -692,8 +692,13 @@ public class PushDecryptJob extends ContextJob {
 
   private void sendHelpMessage(String source, Recipients recipients) {
     try {
-      //TODO Steffi: ausführlich den list-Befehl beschreiben
-      String helpMessageText = "Sie können folgende Kommandos nutzen:\n\n!@ ok ID - Kontakt bestätigen\n\n!@ block ID - Kontakt für 2 Wochen blocken\n\n!@ block ID perm - Kontakt permanent blockieren\n\n!@ new NUMMER ANZEIGENAME - neue Nummer mit Anzeigenamen hinzufügen\n\n!@ list LISTENNAME - Liste ";
+      String helpMessageText = "Sie können folgende Kommandos nutzen:\n\n" +
+              "!@ ok ID - Kontakt bestätigen" +
+              "\n\n!@ block ID - Kontakt für 2 Wochen blockieren" +
+              "\n\n!@ block ID perm - Kontakt permanent blockieren" +
+              "\n\n!@ new NUMMER ANZEIGENAME - neue Nummer mit Anzeigenamen hinzufügen" +
+              "\n\n!@ list LISTENNAME - zeigt gewünschte Liste an; zur Verfügung stehende Listen: geblockt, erlaubt, wartet" +
+              "\n\n!@ remove NUMMER - entfernt jeden Eintrag mit der entsprechenden Nummer";
       SendMessage(helpMessageText, source, recipients);
     } catch (NotInDirectoryException nide) {
       nide.printStackTrace();
