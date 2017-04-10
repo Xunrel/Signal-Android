@@ -55,6 +55,7 @@ import org.thoughtcrime.securesms.sms.MessageSender;
 import org.thoughtcrime.securesms.sms.OutgoingEncryptedMessage;
 import org.thoughtcrime.securesms.sms.OutgoingTextMessage;
 import org.thoughtcrime.securesms.util.Base64;
+import org.thoughtcrime.securesms.util.DirectoryHelper;
 import org.thoughtcrime.securesms.util.GroupUtil;
 import org.thoughtcrime.securesms.util.JsonUtils;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
@@ -625,6 +626,9 @@ public class PushDecryptJob extends ContextJob {
         vCard = PendingList.removeVCardById(context, id);
         if (vCard != null) {
           WhiteList.addNumberToFile(context, vCard.getMobileNumber(), vCard.getFirstName() + " " + vCard.getLastName());
+
+            MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
+            DirectoryHelper.refreshDirectory(context, masterSecret);
         }
       } catch (Exception e) {
         e.printStackTrace();
