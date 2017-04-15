@@ -89,6 +89,7 @@ public class ContactsDatabase {
 
     // Steffi: whiteList auslesen und Nummern und Namen für Update auslesen
 
+      WhiteList whiteList = WhiteList.getWhiteListContent(context);
 
     for (ContactTokenDetails registeredContact : registeredContacts) {
       String registeredNumber = registeredContact.getNumber();
@@ -99,16 +100,16 @@ public class ContactsDatabase {
         Optional<SystemContactInfo> systemContactInfo = getSystemContactInfo(registeredNumber, localNumber);
 
         String displayname = "";
-        String numberKey = systemContactInfo.get().number.replace(" ", "");
-        WhiteList whiteList = WhiteList.getWhiteListContent(context);
-        if (whiteList.isInWhiteList(numberKey)) {
-          displayname = whiteList.getContactList().get(numberKey);
-        }
-        if (displayname.isEmpty()) {
-          displayname = systemContactInfo.get().name;
-        }
 
         if (systemContactInfo.isPresent()) {
+            String numberKey = systemContactInfo.get().number.replace(" ", "");
+            if (whiteList.isInWhiteList(numberKey)) {
+                displayname = whiteList.getContactList().get(numberKey);
+            }
+            if (displayname.isEmpty()) {
+                displayname = systemContactInfo.get().name;
+            }
+
           Log.w(TAG, "Adding number: " + registeredNumber);
           addedNumbers.add(registeredNumber);
           // TODO Steffi: systemContactInfo.get().number nutzen um DisplayNamen zu identifizieren
@@ -116,6 +117,19 @@ public class ContactsDatabase {
                   // TODO Steffi: statt 'systemContactInfo.get().name' wird name aus der whitelist genutzt
                   displayname, systemContactInfo.get().id,
                                   true);
+        } else {
+            String numberKey = registeredNumber;
+            if (whiteList.isInWhiteList(numberKey)) {
+                displayname = whiteList.getContactList().get(numberKey).trim();
+
+                if (displayname.isEmpty()) {
+                    displayname = registeredNumber;
+                }
+                addTextSecureRawContact(operations, account, numberKey,
+                        // TODO Steffi: statt 'systemContactInfo.get().name' wird name aus der whitelist genutzt
+                        displayname, 0,
+                        true);
+            }
         }
       }
     }
@@ -124,7 +138,7 @@ public class ContactsDatabase {
       ContactTokenDetails tokenDetails = registeredNumbers.get(currentContactEntry.getKey());
 
       if (tokenDetails == null) {
-        if (remove) {
+          if (remove && !whiteList.isInWhiteList(currentContactEntry.getKey())) {
           Log.w(TAG, "Removing number: " + currentContactEntry.getKey());
           removeTextSecureRawContact(operations, account, currentContactEntry.getValue().getId());
         }

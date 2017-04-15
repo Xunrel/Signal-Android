@@ -79,8 +79,6 @@ public class DirectoryHelper {
     List<ContactTokenDetails> activeTokensToRemove = new ArrayList<>();
 
     // TODO Steffi: use the following lines to read from whitelist
-//    String whiteListContent = FileHelper.readDataFromFile(context, FileHelper.whiteListFileName);
-//    ArrayList<String> whiteListNumbers = JsonUtils.fromJson(whiteListContent, ArrayList.class);
     WhiteList whiteList = WhiteList.getWhiteListContent(context);
 
     if (activeTokens != null) {

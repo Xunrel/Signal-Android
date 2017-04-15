@@ -83,7 +83,6 @@ import org.whispersystems.signalservice.api.messages.calls.AnswerMessage;
 import org.whispersystems.signalservice.api.messages.calls.HangupMessage;
 import org.whispersystems.signalservice.api.messages.calls.IceUpdateMessage;
 import org.whispersystems.signalservice.api.messages.calls.OfferMessage;
-import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.ReadMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.RequestMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SentTranscriptMessage;
@@ -170,13 +169,17 @@ public class PushDecryptJob extends ContextJob {
         SignalServiceDataMessage message = content.getDataMessage().get();
 
         if      (message.isEndSession())               handleEndSessionMessage(masterSecret, envelope, message, smsMessageId);
-        else if (message.isGroupUpdate())              handleGroupMessage(masterSecret, envelope, message, smsMessageId);
-        else if (message.isExpirationUpdate())         handleExpirationUpdate(masterSecret, envelope, message, smsMessageId);
+        else if (message.isGroupUpdate())
+          return; //handleGroupMessage(masterSecret, envelope, message, smsMessageId); // Steffi: Gruppen-Daten-Nachricht deaktivieren
+        else if (message.isExpirationUpdate())
+          return; //handleExpirationUpdate(masterSecret, envelope, message, smsMessageId);
         else if (message.getAttachments().isPresent()) handleMediaMessage(masterSecret, envelope, message, smsMessageId);
         else                                           handleTextMessage(masterSecret, envelope, message, smsMessageId);
 
         if (message.getGroupInfo().isPresent() && groupDatabase.isUnknownGroup(message.getGroupInfo().get().getGroupId())) {
-          handleUnknownGroupMessage(envelope, message.getGroupInfo().get());
+          return;
+          // Steffi: Unbekannte Gruppe wird nicht mehr bearbeitet
+//          handleUnknownGroupMessage(envelope, message.getGroupInfo().get());
         }
       } else if (content.getSyncMessage().isPresent()) {
         SignalServiceSyncMessage syncMessage = content.getSyncMessage().get();
@@ -185,15 +188,18 @@ public class PushDecryptJob extends ContextJob {
         else if (syncMessage.getRequest().isPresent()) handleSynchronizeRequestMessage(masterSecret, syncMessage.getRequest().get());
         else if (syncMessage.getRead().isPresent())    handleSynchronizeReadMessage(masterSecret, syncMessage.getRead().get(), envelope.getTimestamp());
         else                                           Log.w(TAG, "Contains no known sync types...");
-      } else if (content.getCallMessage().isPresent()) {
-        Log.w(TAG, "Got call message...");
-        SignalServiceCallMessage message = content.getCallMessage().get();
-
-        if      (message.getOfferMessage().isPresent())      handleCallOfferMessage(envelope, message.getOfferMessage().get(), smsMessageId);
-        else if (message.getAnswerMessage().isPresent())     handleCallAnswerMessage(envelope, message.getAnswerMessage().get());
-        else if (message.getIceUpdateMessages().isPresent()) handleCallIceUpdateMessage(envelope, message.getIceUpdateMessages().get());
-        else if (message.getHangupMessage().isPresent())     handleCallHangupMessage(envelope, message.getHangupMessage().get(), smsMessageId);
-      } else {
+      } else
+      // Steffi: Call deaktiviert
+//        if (content.getCallMessage().isPresent()) {
+//        Log.w(TAG, "Got call message...");
+//        SignalServiceCallMessage message = content.getCallMessage().get();
+//
+//        if      (message.getOfferMessage().isPresent())      handleCallOfferMessage(envelope, message.getOfferMessage().get(), smsMessageId);
+//        else if (message.getAnswerMessage().isPresent())     handleCallAnswerMessage(envelope, message.getAnswerMessage().get());
+//        else if (message.getIceUpdateMessages().isPresent()) handleCallIceUpdateMessage(envelope, message.getIceUpdateMessages().get());
+//        else if (message.getHangupMessage().isPresent())     handleCallHangupMessage(envelope, message.getHangupMessage().get(), smsMessageId);
+//      } else
+      {
         Log.w(TAG, "Got unrecognized message...");
       }
 
@@ -462,6 +468,9 @@ public class PushDecryptJob extends ContextJob {
                                                                  message.getGroupInfo(),
                                                                  message.getAttachments());
 
+    String source = envelope.getSource();
+    if (!isInWhiteList(source)) return;
+
     if (message.getExpiresInSeconds() != recipients.getExpireMessages()) {
       handleExpirationUpdate(masterSecret, envelope, message, Optional.<Long>absent());
     }
@@ -644,6 +653,13 @@ public class PushDecryptJob extends ContextJob {
     String number = MessageHelper.getNumberFromMessage(message);
     String displayName = MessageHelper.getDisplayNameFromMessage(message);
     WhiteList.addNumberToFile(context, number, displayName);
+
+    MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
+    try {
+      DirectoryHelper.refreshDirectory(context, masterSecret);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   // Angefragte Liste anfordern
@@ -845,7 +861,25 @@ public class PushDecryptJob extends ContextJob {
     // Ansonsten zeige wie üblich die Nachricht an
 
     if (message.getExpiresInSeconds() != recipients.getExpireMessages()) {
-      handleExpirationUpdate(masterSecret, envelope, message, Optional.<Long>absent());
+      return;
+//      handleExpirationUpdate(masterSecret, envelope, message, Optional.<Long>absent());
+    }
+
+    // Steffi: wenn gruppen info vorhanden ist, dann Nachricht erstmal verwerfen
+    if (message.getGroupInfo().isPresent()) {
+//      byte[] groupId = message.getGroupInfo().get().getGroupId();
+//
+//      DatabaseFactory.getGroupDatabase(context).setActive(groupId, false);
+//
+//      SignalServiceProtos.GroupContext groupContext = SignalServiceProtos.GroupContext.newBuilder()
+//              .setId(ByteString.copyFrom(groupId))
+//              .setType(SignalServiceProtos.GroupContext.Type.QUIT)
+//              .build();
+//
+//      OutgoingGroupMediaMessage outgoingMessage = new OutgoingGroupMediaMessage(recipients, groupContext, null, System.currentTimeMillis(), 0);
+//      MessageSender.send(context, masterSecret.getMasterSecret().get(), outgoingMessage, -1L, false);
+//      DatabaseFactory.getGroupDatabase(context).remove(groupId, TextSecurePreferences.getLocalNumber(context));
+      return;
     }
 
     Long threadId;
