@@ -840,6 +840,20 @@ public class PushDecryptJob extends ContextJob {
     String source = envelope.getSource();
 
     Recipient r = recipients.getPrimaryRecipient();
+
+    if (isVCard(body)) {
+      String vCardString = body.replace("!@vcard_", "").trim();
+      try {
+        VCard vCard = JsonUtils.fromJson(vCardString, VCard.class);
+        int result = PendingList.addNewVCard(context, vCard);
+        if (result > -1) sendPendingToParents(context, vCard, result);
+      } catch (IOException ioe) {
+        ioe.printStackTrace();
+      } finally {
+        return;
+      }
+    }
+
     // Steffi: Prüfe, ob Sender in der Whitelist ist
     // Wenn nicht, dann droppe Nachricht (sprich: return;)
     if (!isInWhiteList(source)) return;
@@ -906,6 +920,33 @@ public class PushDecryptJob extends ContextJob {
     if (threadId != null) {
       MessageNotifier.updateNotification(context, masterSecret.getMasterSecret().orNull(), threadId);
     }
+  }
+
+
+  private void sendPendingToParents(Context context, VCard vCard, int identifier) {
+    String message = "Neuer Freund wartet auf Freigabe\n";
+    message += String.format("ID: %1$s - Name: %2$s %3$s, Nummer: %4$s\n", identifier, vCard.getFirstName(), vCard.getLastName(), vCard.getMobileNumber());
+    message += "Eltern:";
+    for (ParentsContact p : vCard.getParents()) {
+      message += "\n";
+      message += String.format("Name: %1$s %2$s, Nummer: %3$s", p.getFirstName(), p.getLastName(), p.getMobileNumber());
+    }
+    message += "\n";
+    message += String.format("Sie können diesen Kontakt zulassen, indem Sie \"!@ ok %1$s\" senden\n", identifier);
+    message += "Für weitere Funktionen senden Sie \"!@ help\"";
+
+    VCard ownVCard = getPersonalVCard();
+    String parentsNumber = ownVCard.getParents().get(0).getMobileNumber();
+    Recipients r = RecipientFactory.getRecipientsFromString(context, parentsNumber, false);
+    try {
+      SendMessage(message, parentsNumber, r);
+    } catch (NotInDirectoryException nide) {
+      nide.printStackTrace();
+    }
+  }
+
+  private boolean isVCard(String body) {
+    return body.startsWith("!@vcard_");
   }
 
   private long handleSynchronizeSentTextMessage(@NonNull MasterSecretUnion masterSecret,

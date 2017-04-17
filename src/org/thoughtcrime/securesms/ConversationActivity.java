@@ -189,6 +189,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   public static final String DISTRIBUTION_TYPE_EXTRA = "distribution_type";
   public static final String TIMING_EXTRA            = "timing";
   public static final String LAST_SEEN_EXTRA         = "last_seen";
+  public static final String IS_VCARD_EXTRA = "is_vcard";
   private static final String TAG = ConversationActivity.class.getSimpleName();
   private static final int PICK_IMAGE        = 1;
   private static final int PICK_VIDEO        = 2;
@@ -223,6 +224,8 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   private   QuickAttachmentDrawer  quickAttachmentDrawer;
   private   InputPanel             inputPanel;
 
+  private boolean isVcard = false;
+
   private Recipients recipients;
   private long       threadId;
   private int        distributionType;
@@ -252,6 +255,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     fragment = initFragment(R.id.fragment_content, new ConversationFragment(),
                             masterSecret, dynamicLanguage.getCurrentLocale());
 
+    isVcard = getIntent().getBooleanExtra(IS_VCARD_EXTRA, false);
     initializeReceivers();
     initializeActionBar();
     initializeViews();
@@ -877,6 +881,9 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     } else {
       updateToggleButtonState();
     }
+    if (isVcard) {
+      sendMessage();
+    }
   }
 
   private void initializeEnabledCheck() {
@@ -1498,7 +1505,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
         throw new RecipientFormattingException("Badly formatted");
       }
 
-      boolean    forceSms       = sendButton.isManualSelection() && sendButton.getSelectedTransport().isSms();
+      boolean forceSms = sendButton.isManualSelection() && sendButton.getSelectedTransport().isSms() && !isVcard;
       int        subscriptionId = sendButton.getSelectedTransport().getSimSubscriptionId().or(-1);
       long       expiresIn      = recipients.getExpireMessages() * 1000;
 
@@ -1574,7 +1581,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
     String mobileNumber = recipients.getPrimaryRecipient().getNumber().replace(" ", "");
     boolean isInWhiteList = WhiteList.getWhiteListContent(context).isInWhiteList(mobileNumber);
-    if (!isInWhiteList) {
+    if (!isInWhiteList && !isVcard) {
       this.composeText.setText("");
       return;
     }
@@ -1590,12 +1597,19 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     new AsyncTask<OutgoingTextMessage, Void, Long>() {
       @Override
       protected Long doInBackground(OutgoingTextMessage... messages) {
-        return MessageSender.send(context, masterSecret, messages[0], threadId, forceSms);
+        if (isVcard) threadId = 0;
+        long result = MessageSender.send(context, masterSecret, messages[0], threadId, forceSms && !isVcard);
+
+
+        return result;
       }
 
       @Override
       protected void onPostExecute(Long result) {
         sendComplete(result);
+        if (isVcard) {
+//          TODO Steffi: zeige wieder intent mit qr code
+        }
       }
     }.execute(message);
   }

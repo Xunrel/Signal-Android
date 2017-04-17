@@ -39,15 +39,17 @@ public class PendingList {
      * @param context Context der Application
      * @param vCard   VCard des anfragenden Kindes
      */
-    public static void addNewVCard(final Context context, VCard vCard) {
+    public static int addNewVCard(final Context context, VCard vCard) {
+        int identifier = -1;
         try {
             PendingList pendingList = getPendingListContent(context);
-            pendingList.addVCard(context, vCard);
+            identifier = pendingList.addVCard(context, vCard);
             String jsonString = JsonUtils.toJson(pendingList);
             FileHelper.writeDataToFile(context, jsonString, FileHelper.pendingListFileName);
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
+        return identifier;
     }
 
     /**
@@ -152,12 +154,14 @@ public class PendingList {
         this.pendingVCards = pendingVCards;
     }
 
-    private void addVCard(final Context context, VCard vCard) {
+    private int addVCard(final Context context, VCard vCard) {
         // Steffi: Prüfe, ob vCard in der Liste existiert
-        if (existsVCard(vCard)) return;
+        if (existsVCard(vCard)) return -1;
         // Wenn vCard in der Blacklist oder Whitelist bereits vorhanden ist, tue nichts
-        if (BlackList.getBlackListContent(context).isInBlackList(vCard.getMobileNumber())) return;
-        if (WhiteList.getWhiteListContent(context).isInWhiteList(vCard.getMobileNumber())) return;
+        if (BlackList.getBlackListContent(context).isInBlackList(vCard.getMobileNumber()))
+            return -1;
+        if (WhiteList.getWhiteListContent(context).isInWhiteList(vCard.getMobileNumber()))
+            return -1;
 
         // Füge der VCard ein Ablaufdatum hinzu
         addExpirationDate(vCard);
@@ -165,6 +169,7 @@ public class PendingList {
         Integer newId = getNewId();
         // Füge die neue VCard der Pendinglist hinzu
         this.pendingVCards.put(newId, vCard);
+        return newId;
     }
 
     private void addExpirationDate(VCard vCard) {

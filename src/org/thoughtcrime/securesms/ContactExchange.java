@@ -17,14 +17,20 @@ import android.widget.ImageView;
 
 import org.thoughtcrime.securesms.additions.VCard;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.NotInDirectoryException;
+import org.thoughtcrime.securesms.database.TextSecureDirectory;
+import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.service.KeyCachingService;
 import org.thoughtcrime.securesms.sms.MessageSender;
+import org.thoughtcrime.securesms.sms.OutgoingEncryptedMessage;
 import org.thoughtcrime.securesms.sms.OutgoingTextMessage;
+import org.thoughtcrime.securesms.util.JsonUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.GregorianCalendar;
 import java.util.UUID;
 
@@ -119,14 +125,36 @@ public class ContactExchange extends AppCompatActivity {
                 // Nummer aus dem ersten Item des Arrays nutzen, um vCard zu versenden
                 if (stringResults[0] != null) {
                     String mobileNumber = stringResults[0];
-                    Context context = getApplicationContext();
+                    Context context = this; // getApplicationContext();
                     VCard vCard = VCard.getVCard(context);
                     if (vCard != null) {
                         try {
-                            Recipients r = RecipientFactory.getRecipientsFromString(context, mobileNumber, false);
-                            SendMessage(vCard.toString(), vCard.getMobileNumber(), r);
-                        } catch (NotInDirectoryException nide) {
-                            nide.printStackTrace();
+//                            final MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
+//                            Recipients r = RecipientFactory.getRecipientsFromString(this, mobileNumber, true); //context, mobileNumber, true);
+//                            DirectoryHelper.UserCapabilities userCapabilities = DirectoryHelper.getUserCapabilities(context, r);
+//                            if (userCapabilities.getTextCapability() == DirectoryHelper.UserCapabilities.Capability.UNKNOWN) {
+//                                userCapabilities = DirectoryHelper.refreshDirectoryFor(context, masterSecret, r, TextSecurePreferences.getLocalNumber(context));
+//                            }
+                            String vCardString = JsonUtils.toJson(vCard);
+//                            SendMessage(vCardString, vCard.getMobileNumber(), r);
+                            Recipients recipients = RecipientFactory.getRecipientsFromString(this, mobileNumber, true);
+
+                            Intent intent = new Intent(this, ConversationActivity.class);
+                            intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+                            intent.putExtra(ConversationActivity.TEXT_EXTRA, String.format("!@vcard_%s", vCardString));
+                            intent.putExtra(ConversationActivity.IS_VCARD_EXTRA, true);
+                            intent.setDataAndType(getIntent().getData(), getIntent().getType());
+
+                            long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);
+
+                            intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, existingThread);
+                            intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);
+                            startActivity(intent);
+                            finish();
+//                        } catch (NotInDirectoryException nide) {
+//                            nide.printStackTrace();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
                         }
                     }
                 }
@@ -173,13 +201,19 @@ public class ContactExchange extends AppCompatActivity {
     private void SendMessage(String messageText, String source, Recipients recipients) throws NotInDirectoryException {
         Context context = getApplicationContext();
         final MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
+        boolean isSecureText = TextSecureDirectory.getInstance(context).isSecureTextSupported(source);
 
         OutgoingTextMessage message = null;
 
         // Steffi: subscriptionId ermitteln
         long expiresIn = -1;
         int subscriptionId = 0;
-        message = new OutgoingTextMessage(recipients, messageText, expiresIn, subscriptionId);
+
+        if (isSecureText) {
+            message = new OutgoingEncryptedMessage(recipients, messageText, expiresIn);
+        } else {
+            message = new OutgoingTextMessage(recipients, messageText, expiresIn, subscriptionId);
+        }
 
 
         // Steffi: threadId ermitteln
