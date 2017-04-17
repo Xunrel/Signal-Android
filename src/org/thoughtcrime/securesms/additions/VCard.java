@@ -1,5 +1,10 @@
 package org.thoughtcrime.securesms.additions;
 
+import android.content.Context;
+
+import org.thoughtcrime.securesms.util.JsonUtils;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -61,5 +66,18 @@ public class VCard extends Contact {
 
     public void addParent(ParentsContact parent) {
         parents.add(parents.size(), parent);
+    }
+
+    public static VCard getVCard(Context context) {
+        VCard vCard = new VCard();
+
+        String jsonVCard = FileHelper.readDataFromFile(context, FileHelper.vCardFileName);
+
+        try {
+            vCard = JsonUtils.fromJson(jsonVCard, VCard.class);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+        return vCard;
     }
 }
