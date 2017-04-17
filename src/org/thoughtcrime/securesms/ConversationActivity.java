@@ -93,6 +93,7 @@ import org.thoughtcrime.securesms.components.reminder.InviteReminder;
 import org.thoughtcrime.securesms.components.reminder.ReminderView;
 import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.ContactAccessor.ContactData;
+import org.thoughtcrime.securesms.crypto.IdentityKeyUtil;
 import org.thoughtcrime.securesms.crypto.MasterCipher;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.SecurityEvent;
@@ -143,6 +144,7 @@ import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.DynamicTheme;
 import org.thoughtcrime.securesms.util.ExpirationUtil;
 import org.thoughtcrime.securesms.util.GroupUtil;
+import org.thoughtcrime.securesms.util.IdentityUtil;
 import org.thoughtcrime.securesms.util.MediaUtil;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
@@ -151,7 +153,10 @@ import org.thoughtcrime.securesms.util.concurrent.AssertedSuccessListener;
 import org.thoughtcrime.securesms.util.concurrent.ListenableFuture;
 import org.thoughtcrime.securesms.util.concurrent.SettableFuture;
 import org.thoughtcrime.securesms.util.views.Stub;
+import org.whispersystems.libsignal.IdentityKey;
 import org.whispersystems.libsignal.InvalidMessageException;
+import org.whispersystems.libsignal.fingerprint.Fingerprint;
+import org.whispersystems.libsignal.fingerprint.NumericFingerprintGenerator;
 import org.whispersystems.libsignal.util.guava.Optional;
 
 import java.io.IOException;
@@ -1577,7 +1582,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
       throws InvalidMessageException
   {
     final Context context = getApplicationContext();
-    OutgoingTextMessage message;
+    final OutgoingTextMessage message;
 
     String mobileNumber = recipients.getPrimaryRecipient().getNumber().replace(" ", "");
     boolean isInWhiteList = WhiteList.getWhiteListContent(context).isInWhiteList(mobileNumber);
@@ -1608,10 +1613,50 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
       protected void onPostExecute(Long result) {
         sendComplete(result);
         if (isVcard) {
-          //Steffi: zeige wieder intent mit qr code
-          Intent intent = new Intent(context, ContactExchange.class);
-          startActivity(intent);
+          //Steffi: zeige wieder intent mit qr code + Fingerprint
+          getFingerprint(message.getRecipients().getPrimaryRecipient().getNumber());
         }
+      }
+
+
+      // Wird niemals außerhalb der AsyncMethode aufgerufen werden können
+      private void getFingerprint(String remoteNumber) {
+
+        // Steffi: remotenumber = Nummer des Empfängers ohne Leerzeichen!
+        final String remNumber = remoteNumber.replace(" ", "");
+        // Eigene Nummer
+        final String localNumber = TextSecurePreferences.getLocalNumber(context);
+        // Eigener IdentityKey
+        final IdentityKey localIdentity = IdentityKeyUtil.getIdentityKey(context);
+        // Empfänger als Recipient
+        final Recipient recipient = RecipientFactory.getRecipientsFromString(context, remoteNumber, true).getPrimaryRecipient();
+
+        // Utility Methode um IdentityKey des Empfängers zu ermitteln
+        IdentityUtil.getRemoteIdentityKey(context, masterSecret, recipient).addListener(new ListenableFuture.Listener<Optional<IdentityKey>>() {
+          @Override
+          public void onSuccess(Optional<IdentityKey> result) {
+            // Sobald IdentityKey des Empfängers ermittelt wurde
+            if (result.isPresent()) {
+              // Generiere fingerprint
+              Fingerprint fingerprint = new NumericFingerprintGenerator(5200).createFor(localNumber, localIdentity,
+                      remNumber, result.get());
+
+              // Activity für QR Code mit eingearbeiteten Fingerprint
+              Intent intent = new Intent(context, ContactExchange.class);
+              // Ermittelten Fingerprint an die Activity übergeben
+              intent.putExtra(ContactExchange.FINGERPRINT, fingerprint.getDisplayableFingerprint().getDisplayText());
+              // Activity starten
+              startActivity(intent);
+            }
+          }
+
+          @Override
+          public void onFailure(ExecutionException e) {
+            // TODO Steffi: Was passiert, wenn Fingerprint nicht ermittelt werden konnte?
+            Log.w(TAG, e);
+          }
+        });
+
       }
     }.execute(message);
   }

@@ -28,6 +28,9 @@ import java.util.UUID;
 
 public class ContactExchange extends AppCompatActivity {
 
+    //Steffi: intent extra data, um fingerprint erhalten zu können
+    public static final String FINGERPRINT = "qr_fingerprint";
+
     private static final int ACTIVITY_RESULT_QR_DRDROID_ENCODE = 5;
     private static final int ACTIVITY_RESULT_QR_DRDROID_SCAN = 3;
     private int size = 0;
@@ -37,9 +40,14 @@ public class ContactExchange extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
         Log.d("CE","Creating Contact Exchange");
         // Steffi: verhindert, dass ein Screenshot gemacht wird
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+
+        // Holen des möglichen Fingerprints
+        String fingerprint = getIntent().getStringExtra(FINGERPRINT);
 
         setContentView(R.layout.activity_contact_exchange);
 
@@ -51,6 +59,11 @@ public class ContactExchange extends AppCompatActivity {
         GregorianCalendar d = new GregorianCalendar();
         String uniqueId  = UUID.randomUUID().toString();
         String qrCode = String.format("%1$s|%2$s", localNumber, d.getTime().toString());
+
+        // Prüfen, ob Fingerprint vorhanden, wenn ja, dann in QR Code einarbeiten
+        if (fingerprint != null && !fingerprint.isEmpty()) {
+            qrCode += String.format("|%s", fingerprint);
+        }
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
