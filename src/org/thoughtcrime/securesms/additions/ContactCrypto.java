@@ -5,7 +5,7 @@ package org.thoughtcrime.securesms.additions;
  */
 
 /**
- * Mögliche Erweiterung, um die Listen zu ver- und entschlüsseln, bevor diese geschrieben oder ausgelesen werden.
+ * Steffi: Mögliche Erweiterung, um die Listen zu ver- und entschlüsseln, bevor diese geschrieben oder ausgelesen werden.
  */
 public class ContactCrypto {
 }
