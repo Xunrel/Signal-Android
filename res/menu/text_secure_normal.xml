@@ -5,6 +5,10 @@
     <!--android:id="@+id/menu_new_group" />-->
 
     <item
+        android:id="@+id/menu_new_contact"
+        android:title="Freund hinzufügen" />
+
+    <item
         android:id="@+id/menu_clear_passphrase"
         android:title="@string/text_secure_normal__menu_clear_passphrase"/>
 
