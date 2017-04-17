@@ -1,11 +1,15 @@
 package org.thoughtcrime.securesms;
 
+import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -51,6 +55,7 @@ import java.util.ArrayList;
  */
 public class RegistrationActivity extends BaseActionBarActivity {
 
+  private static final int READ_EXTERNAL_STORAGE = 2;
   private static final int PICK_COUNTRY = 1;
   private static final String TAG = RegistrationActivity.class.getSimpleName();
   private AsYouTypeFormatter   countryFormatter;
@@ -77,11 +82,35 @@ public class RegistrationActivity extends BaseActionBarActivity {
     super.onCreate(icicle);
     setContentView(R.layout.registration_activity);
 
+    // Steffi: Zeile 87 - 92 => Abfrage der Berechtigung für externen Speicher, da einige Smartphones ihren Speicher als SD Karte simulieren
+    if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED) {
+
+      ActivityCompat.requestPermissions(this,
+              new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_EXTERNAL_STORAGE);
+    }
+
     getSupportActionBar().setTitle(getString(R.string.RegistrationActivity_connect_with_signal));
 
     initializeResources();
     initializeSpinner();
     initializeNumber();
+  }
+
+  // Steffi: Überprüfung, ob die Rechte gegeben wurden oder nicht.
+  @Override
+  public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    switch (requestCode) {
+      // Steffi: Prüfung, ob Rechte für externen Speicher gewährt wurden oder nicht
+      case READ_EXTERNAL_STORAGE:
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+          // Wenn gewährt, fahre fort
+        } else {
+          // wenn nicht gewährt, dann breche ab
+          Toast.makeText(this, "Please grant external storage permission to use this app", Toast.LENGTH_SHORT).show();
+          return;
+        }
+    }
   }
 
   @Override

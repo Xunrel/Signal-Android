@@ -28,9 +28,9 @@ repositories {
 }
 
 dependencies {
-//    compile('com.android.support:support-v4-preferencefragment:1.0.0@aar') {
-//        exclude module: 'support-v4'
-//    }
+    compile('com.android.support:support-v4-preferencefragment:1.0.0@aar') {
+        exclude module: 'support-v4'
+    }
     compile('com.android.support:gridlayout-v7:25.1.0') {
         exclude module: 'support-v4'
     }
@@ -54,7 +54,7 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     }
     compile 'com.android.support:appcompat-v7:25.1.0'
-    compile 'com.android.support:preference-v7:25.1.0'
+//    compile 'com.android.support:preference-v7:25.1.0'
     compile 'com.android.support:recyclerview-v7:25.1.0'
     compile 'com.android.support:design:25.1.0'
     compile 'com.android.support:support-v13:25.1.0'
@@ -106,7 +106,7 @@ dependencyVerification {
             'com.android.support:design:92466557dc6a222bbff361801b26979573cb7086119331e78c74a2df34d5e11e',
             'com.android.support:support-v13:deeb43c2878025f2a0485791f66b5f59a1c6a4c6671c6ad7bb20abfeffaa313f',
             'com.android.support:cardview-v7:cd6f472f130a75f029cd1b7c56f72174023d56a2eee2b97577837fe39169d5df',
-//            'com.android.support:support-v4-preferencefragment:5470f5872514a6226fa1fc6f4e000991f38805691c534cf0bd2778911fc773ad',
+            'com.android.support:support-v4-preferencefragment:5470f5872514a6226fa1fc6f4e000991f38805691c534cf0bd2778911fc773ad',
             'com.android.support:gridlayout-v7:c24f2aa68089fd31b39811bc502e24637a6a8cc29bbf709cda4f4605047c9e11',
             'com.android.support:multidex:60df8e7153fabdcf3a6a48a2ce5980b599cf25cbeb3b689b7b615975ca731840',
             'com.google.android.gms:play-services-gcm:312e61253a236f2d9b750b9c04fc92fd190d23b0b2755c99de6ce4a28b259dae',
