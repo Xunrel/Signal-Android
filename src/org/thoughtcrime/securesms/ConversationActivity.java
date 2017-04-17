@@ -1608,7 +1608,9 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
       protected void onPostExecute(Long result) {
         sendComplete(result);
         if (isVcard) {
-//          TODO Steffi: zeige wieder intent mit qr code
+          //Steffi: zeige wieder intent mit qr code
+          Intent intent = new Intent(context, ContactExchange.class);
+          startActivity(intent);
         }
       }
     }.execute(message);

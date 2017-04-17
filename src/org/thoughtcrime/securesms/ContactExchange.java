@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
@@ -16,17 +15,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import org.thoughtcrime.securesms.additions.VCard;
-import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
-import org.thoughtcrime.securesms.database.NotInDirectoryException;
-import org.thoughtcrime.securesms.database.TextSecureDirectory;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
-import org.thoughtcrime.securesms.service.KeyCachingService;
-import org.thoughtcrime.securesms.sms.MessageSender;
-import org.thoughtcrime.securesms.sms.OutgoingEncryptedMessage;
-import org.thoughtcrime.securesms.sms.OutgoingTextMessage;
 import org.thoughtcrime.securesms.util.JsonUtils;
 
 import java.io.File;
@@ -189,46 +181,5 @@ public class ContactExchange extends AppCompatActivity {
 
             //TODO Steffi: Entscheiden, was mit dem QR-Code geschieht - permanent speichern oder löschen
         }
-    }
-
-    /**
-     * Hilfsmethode zum Versenden einer Text-Nachricht als Antwort auf ein Spezial-Kommando
-     *
-     * @param messageText
-     * @param recipients
-     * @throws NotInDirectoryException
-     */
-    private void SendMessage(String messageText, String source, Recipients recipients) throws NotInDirectoryException {
-        Context context = getApplicationContext();
-        final MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
-        boolean isSecureText = TextSecureDirectory.getInstance(context).isSecureTextSupported(source);
-
-        OutgoingTextMessage message = null;
-
-        // Steffi: subscriptionId ermitteln
-        long expiresIn = -1;
-        int subscriptionId = 0;
-
-        if (isSecureText) {
-            message = new OutgoingEncryptedMessage(recipients, messageText, expiresIn);
-        } else {
-            message = new OutgoingTextMessage(recipients, messageText, expiresIn, subscriptionId);
-        }
-
-
-        // Steffi: threadId ermitteln
-        new AsyncTask<OutgoingTextMessage, Void, Long>() {
-            @Override
-            protected Long doInBackground(OutgoingTextMessage... messages) {
-                // Steffi: threadId setzen
-                long threadId = 0;
-                return MessageSender.send(getApplicationContext(), masterSecret, messages[0], threadId, false);
-            }
-
-            @Override
-            protected void onPostExecute(Long result) {
-
-            }
-        }.execute(message);
     }
 }
