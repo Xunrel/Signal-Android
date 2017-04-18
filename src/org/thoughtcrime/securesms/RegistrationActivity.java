@@ -289,6 +289,17 @@ public class RegistrationActivity extends BaseActionBarActivity {
         return;
       }
 
+      String cleanE164number = e164number.replaceAll(" ", "").trim().toLowerCase();
+      String cleanParentE164number = e164parentNumber.replaceAll(" ", "").trim().toLowerCase();
+
+      if (cleanE164number.equals(cleanParentE164number)) {
+        Dialogs.showAlertDialog(self,
+                getString(R.string.RegistrationActivity_invalid_number),
+                String.format("Die Nummern müssen unterschiedlich sein",
+                        e164parentNumber));
+        return;
+      }
+
       // Steffi: Erstellung der persönlichen VCard
       String pFirstName = parentFirstName.getText().toString();
       String pLastName = parentLastName.getText().toString();

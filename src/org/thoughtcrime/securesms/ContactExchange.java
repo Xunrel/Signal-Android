@@ -15,21 +15,34 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import org.thoughtcrime.securesms.additions.VCard;
+import org.thoughtcrime.securesms.crypto.IdentityKeyUtil;
+import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.service.KeyCachingService;
+import org.thoughtcrime.securesms.util.IdentityUtil;
 import org.thoughtcrime.securesms.util.JsonUtils;
+import org.thoughtcrime.securesms.util.TextSecurePreferences;
+import org.thoughtcrime.securesms.util.concurrent.ListenableFuture;
+import org.whispersystems.libsignal.IdentityKey;
+import org.whispersystems.libsignal.fingerprint.Fingerprint;
+import org.whispersystems.libsignal.fingerprint.NumericFingerprintGenerator;
+import org.whispersystems.libsignal.util.guava.Optional;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.GregorianCalendar;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 public class ContactExchange extends AppCompatActivity {
 
     //Steffi: intent extra data, um fingerprint erhalten zu können
     public static final String FINGERPRINT = "qr_fingerprint";
+    private static final String TAG = ContactExchange.class.getSimpleName();
 
     private static final int ACTIVITY_RESULT_QR_DRDROID_ENCODE = 5;
     private static final int ACTIVITY_RESULT_QR_DRDROID_SCAN = 3;
@@ -131,36 +144,14 @@ public class ContactExchange extends AppCompatActivity {
                 if (stringResults[0] != null) {
                     String mobileNumber = stringResults[0];
                     Context context = this; // getApplicationContext();
-                    VCard vCard = VCard.getVCard(context);
-                    if (vCard != null) {
-                        try {
-//                            final MasterSecret masterSecret = KeyCachingService.getMasterSecret(context);
-//                            Recipients r = RecipientFactory.getRecipientsFromString(this, mobileNumber, true); //context, mobileNumber, true);
-//                            DirectoryHelper.UserCapabilities userCapabilities = DirectoryHelper.getUserCapabilities(context, r);
-//                            if (userCapabilities.getTextCapability() == DirectoryHelper.UserCapabilities.Capability.UNKNOWN) {
-//                                userCapabilities = DirectoryHelper.refreshDirectoryFor(context, masterSecret, r, TextSecurePreferences.getLocalNumber(context));
-//                            }
-                            String vCardString = JsonUtils.toJson(vCard);
-//                            SendMessage(vCardString, vCard.getMobileNumber(), r);
-                            Recipients recipients = RecipientFactory.getRecipientsFromString(this, mobileNumber, true);
 
-                            Intent intent = new Intent(this, ConversationActivity.class);
-                            intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
-                            intent.putExtra(ConversationActivity.TEXT_EXTRA, String.format("!@vcard_%s", vCardString));
-                            intent.putExtra(ConversationActivity.IS_VCARD_EXTRA, true);
-                            intent.setDataAndType(getIntent().getData(), getIntent().getType());
+                    // Wenn 3 Werte übermittelt wurden, dann muss FIngerprint vorhanden sein als letzter Eintrag
+                    if (stringResults.length == 3 && !stringResults[2].isEmpty()) {
+                        String qrFingerprint = stringResults[2];
 
-                            long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);
-
-                            intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, existingThread);
-                            intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);
-                            startActivity(intent);
-                            finish();
-//                        } catch (NotInDirectoryException nide) {
-//                            nide.printStackTrace();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        checkFingerprint(mobileNumber, qrFingerprint);
+                    } else {
+                        sendCheckMessage(mobileNumber);
                     }
                 }
             }
@@ -177,7 +168,7 @@ public class ContactExchange extends AppCompatActivity {
             String qrCode = data.getExtras().getString("la.droid.qr.result");
 
             //   String qrLocation = Uri.parse(qrCode);
-//Log.d("Main", qrCode);
+            //Log.d("Main", qrCode);
             //           Log.d("Main", getFilesDir().getAbsolutePath());
             File imgFile = new File(qrCode);
             // Log.d("Main", imgFile.getAbsolutePath());
@@ -193,6 +184,90 @@ public class ContactExchange extends AppCompatActivity {
             imgResult.setVisibility(View.VISIBLE);
 
             //TODO Steffi: Entscheiden, was mit dem QR-Code geschieht - permanent speichern oder löschen
+        }
+    }
+
+    private void sendCheckMessage(String mobileNumber) {
+        Recipients recipients = RecipientFactory.getRecipientsFromString(this, mobileNumber, true);
+
+        Intent intent = new Intent(this, ConversationActivity.class);
+        intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+        intent.putExtra(ConversationActivity.TEXT_EXTRA, String.format("!@check_%s", "check"));
+        intent.putExtra(ConversationActivity.IS_CHECK_EXTRA, true);
+        intent.setDataAndType(getIntent().getData(), getIntent().getType());
+
+        long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);
+
+        intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, existingThread);
+        intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);
+        startActivity(intent);
+        finish();
+    }
+
+    private void checkFingerprint(String remoteNumber, final String qrFingerprint) {
+        final Context context = getApplicationContext();
+        // Steffi: remotenumber = Nummer des Empfängers ohne Leerzeichen!
+        final String remNumber = remoteNumber.replace(" ", "");
+        // Eigene Nummer
+        final String localNumber = TextSecurePreferences.getLocalNumber(context);
+        // Eigener IdentityKey
+        final IdentityKey localIdentity = IdentityKeyUtil.getIdentityKey(context);
+        // Empfänger als Recipient
+        final Recipient recipient = RecipientFactory.getRecipientsFromString(context, remoteNumber, true).getPrimaryRecipient();
+        MasterSecret masterSecret = KeyCachingService.getMasterSecret(getApplicationContext());
+
+        // Utility Methode um IdentityKey des Empfängers zu ermitteln
+        IdentityUtil.getRemoteIdentityKey(context, masterSecret, recipient).addListener(new ListenableFuture.Listener<Optional<IdentityKey>>() {
+            @Override
+            public void onSuccess(Optional<IdentityKey> result) {
+                // Sobald IdentityKey des Empfängers ermittelt wurde
+                if (result.isPresent()) {
+                    // Generiere fingerprint
+                    Fingerprint fingerprint = new NumericFingerprintGenerator(5200).createFor(localNumber, localIdentity,
+                            remNumber, result.get());
+
+                    if (fingerprint.getDisplayableFingerprint().getDisplayText().equals(qrFingerprint)) {
+                        sendVCard(remNumber);
+                    } else {
+                        // TODO Steffi: evtl. anderen Intent starten?
+                        return;
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(ExecutionException e) {
+                // TODO Steffi: Was passiert, wenn Fingerprint nicht ermittelt werden konnte?
+                Log.w(TAG, e);
+            }
+        });
+    }
+
+    private void sendVCard(String mobileNumber) {
+
+        Context context = getApplicationContext();
+
+        VCard vCard = VCard.getVCard(context);
+        if (vCard != null) {
+            try {
+                String vCardString = JsonUtils.toJson(vCard);
+                Recipients recipients = RecipientFactory.getRecipientsFromString(this, mobileNumber, true);
+
+                Intent intent = new Intent(this, ConversationActivity.class);
+                intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+                intent.putExtra(ConversationActivity.TEXT_EXTRA, String.format("!@vcard_%s", vCardString));
+                intent.putExtra(ConversationActivity.IS_VCARD_EXTRA, true);
+                intent.setDataAndType(getIntent().getData(), getIntent().getType());
+
+                long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);
+
+                intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, existingThread);
+                intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);
+                startActivity(intent);
+                finish();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
         }
     }
 }
