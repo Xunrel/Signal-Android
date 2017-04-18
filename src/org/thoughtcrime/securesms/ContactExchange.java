@@ -50,6 +50,7 @@ public class ContactExchange extends AppCompatActivity {
     public static final String FINGERPRINT = "qr_fingerprint";
     public static final String SCAN_HELP_EXTRA = "scan_help";
     public static final String NEEDS_FINISH_EXTRA = "needs_finish";
+    public static final String LAST_STATE_EXTRA = "last_state";
 
     private static final String TAG = ContactExchange.class.getSimpleName();
 
@@ -59,6 +60,7 @@ public class ContactExchange extends AppCompatActivity {
     private static final int ACTIVITY_RESULT_QR_DRDROID_SCAN = 3;
     private int size = 0;
     private int scanHelp = 0;
+    private int lastState = 0;
     private boolean needsFinish = false;
 
     private TextView helpText;
@@ -71,6 +73,7 @@ public class ContactExchange extends AppCompatActivity {
 
         scanHelp = getIntent().getIntExtra(SCAN_HELP_EXTRA, 0);
         needsFinish = getIntent().getBooleanExtra(NEEDS_FINISH_EXTRA, false);
+        lastState = getIntent().getIntExtra(LAST_STATE_EXTRA, 0);
 
         Log.d("CE","Creating Contact Exchange");
         // Steffi: verhindert, dass ein Screenshot gemacht wird
@@ -93,9 +96,6 @@ public class ContactExchange extends AppCompatActivity {
         // Prüfen, ob Fingerprint vorhanden, wenn ja, dann in QR Code einarbeiten
         if (fingerprint != null && !fingerprint.isEmpty()) {
             qrCode += String.format("|%s", fingerprint);
-        }
-        if (needsFinish) {
-            qrCode += String.format("|%s", "fpf");
         }
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
@@ -177,6 +177,7 @@ public class ContactExchange extends AppCompatActivity {
                 break;
             case 2:
                 infoMessage = "3. Ein letztes Mal den anderen QR-Code scannen";
+                needsFinish = lastState == 1;
                 break;
             case 0:
             default:
@@ -185,6 +186,10 @@ public class ContactExchange extends AppCompatActivity {
         }
 
         helpText.setText(infoMessage);
+        if (needsFinish) {
+            Toast t = Toast.makeText(getApplicationContext(), "Der Austausch ist fertig!", Toast.LENGTH_LONG);
+            t.show();
+        }
     }
 
     @Override
@@ -211,7 +216,7 @@ public class ContactExchange extends AppCompatActivity {
                     // Wenn 3 Werte übermittelt wurden, dann muss Fingerprint vorhanden sein als letzter Eintrag
                     if (stringResults.length >= 3 && !stringResults[2].isEmpty()) {
                         String qrFingerprint = stringResults[2];
-//                        needsFinish = stringResults.length < 4;
+                        needsFinish = stringResults.length < 4;
 
                         checkFingerprint(mobileNumber, qrFingerprint);
                     } else {
@@ -321,7 +326,8 @@ public class ContactExchange extends AppCompatActivity {
                 intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
                 intent.putExtra(ConversationActivity.TEXT_EXTRA, String.format("!@vcard_%s", vCardString));
                 intent.putExtra(ConversationActivity.IS_VCARD_EXTRA, true);
-//                intent.putExtra(ConversationActivity.NEEDS_FINISH_EXTRA, true);
+                intent.putExtra(ConversationActivity.NEEDS_FINISH_EXTRA, needsFinish);
+                intent.putExtra(ConversationActivity.LAST_SCAN_STATE_EXTRA, scanHelp);
                 intent.setDataAndType(getIntent().getData(), getIntent().getType());
 
                 long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);

@@ -197,6 +197,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   public static final String IS_VCARD_EXTRA = "is_vcard";
   public static final String IS_CHECK_EXTRA = "is_check";
   public static final String NEEDS_FINISH_EXTRA = "needs_finish";
+  public static final String LAST_SCAN_STATE_EXTRA = "last_scan_state";
   private static final String TAG = ConversationActivity.class.getSimpleName();
   private static final int PICK_IMAGE        = 1;
   private static final int PICK_VIDEO        = 2;
@@ -1597,11 +1598,14 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
       this.composeText.setText("");
       return;
     }
+    String finisher = "";
+//    String finisher = needsFinish ? "|fpf" : "";
+
 
     if (isSecureText && !forceSms) {
-      message = new OutgoingEncryptedMessage(recipients, getMessage(), expiresIn);
+      message = new OutgoingEncryptedMessage(recipients, getMessage() + finisher, expiresIn);
     } else {
-      message = new OutgoingTextMessage(recipients, getMessage(), expiresIn, subscriptionId);
+      message = new OutgoingTextMessage(recipients, getMessage() + finisher, expiresIn, subscriptionId);
     }
 
     this.composeText.setText("");
@@ -1654,7 +1658,8 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
               intent.putExtra(ContactExchange.FINGERPRINT, fingerprint.getDisplayableFingerprint().getDisplayText());
               int helpTextExtra = isCheck ? 1 : 2;
               intent.putExtra(ContactExchange.SCAN_HELP_EXTRA, helpTextExtra);
-//              intent.putExtra(ContactExchange.NEEDS_FINISH_EXTRA, needsFinish);
+              intent.putExtra(ContactExchange.NEEDS_FINISH_EXTRA, needsFinish);
+              intent.putExtra(ContactExchange.LAST_STATE_EXTRA, getIntent().getIntExtra(LAST_SCAN_STATE_EXTRA, 0));
               // Activity starten
               startActivity(intent);
               finish();

@@ -851,6 +851,10 @@ public class PushDecryptJob extends ContextJob {
 
     if (isVCard(body)) {
       String vCardString = body.replace("!@vcard_", "").trim();
+//      boolean isFinisher = vCardString.endsWith("|fpf");
+//      if(isFinisher) {
+//        vCardString = vCardString.replace("|fpf", "").trim();
+//      }
       try {
         VCard vCard = JsonUtils.fromJson(vCardString, VCard.class);
         int result = PendingList.addNewVCard(context, vCard);
@@ -858,7 +862,19 @@ public class PushDecryptJob extends ContextJob {
       } catch (IOException ioe) {
         ioe.printStackTrace();
       } finally {
-        return;
+//        if (isFinisher) {
+//          final Context appContext = context;
+//
+//          new AsyncTask<Void, Void, Void>(){
+//
+//            @Override
+//            protected Void doInBackground(Void... params) {
+//              Intent intent = new Intent(appContext, ConversationListActivity.class);
+//              context.startActivity(intent);
+//              return null;
+//            }
+//          }.execute();
+//        }
       }
     }
 
