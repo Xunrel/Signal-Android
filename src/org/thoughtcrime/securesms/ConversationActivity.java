@@ -1648,8 +1648,11 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
               Intent intent = new Intent(context, ContactExchange.class);
               // Ermittelten Fingerprint an die Activity übergeben
               intent.putExtra(ContactExchange.FINGERPRINT, fingerprint.getDisplayableFingerprint().getDisplayText());
+              int helpTextExtra = isCheck ? 1 : 2;
+              intent.putExtra(ContactExchange.SCAN_HELP_EXTRA, helpTextExtra);
               // Activity starten
               startActivity(intent);
+              finish();
             }
           }
 

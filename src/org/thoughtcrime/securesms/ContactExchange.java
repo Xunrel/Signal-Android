@@ -1,11 +1,15 @@
 package org.thoughtcrime.securesms;
 
+import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -13,6 +17,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.thoughtcrime.securesms.additions.VCard;
 import org.thoughtcrime.securesms.crypto.IdentityKeyUtil;
@@ -42,11 +48,18 @@ public class ContactExchange extends AppCompatActivity {
 
     //Steffi: intent extra data, um fingerprint erhalten zu können
     public static final String FINGERPRINT = "qr_fingerprint";
+    public static final String SCAN_HELP_EXTRA = "scan_help";
+
     private static final String TAG = ContactExchange.class.getSimpleName();
+
+    private static final int QR_READ_STORAGE = 1;
 
     private static final int ACTIVITY_RESULT_QR_DRDROID_ENCODE = 5;
     private static final int ACTIVITY_RESULT_QR_DRDROID_SCAN = 3;
     private int size = 0;
+    private int scanHelp = 0;
+
+    private TextView helpText;
 
     // TODO Steffi: Code aufräumen
 
@@ -54,6 +67,7 @@ public class ContactExchange extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        scanHelp = getIntent().getIntExtra(SCAN_HELP_EXTRA, 0);
 
         Log.d("CE","Creating Contact Exchange");
         // Steffi: verhindert, dass ein Screenshot gemacht wird
@@ -64,7 +78,7 @@ public class ContactExchange extends AppCompatActivity {
 
         setContentView(R.layout.activity_contact_exchange);
 
-        // Steffi: Permissions schon bei der Installation bzw. Registrierung einholen zB checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        // Steffi: Permissions schon bei der Installation bzw. Registrierung einholen zB checkSelfPermission(Manifest.permission.QR_READ_STORAGE);
 
         final Button button = (Button) findViewById(R.id.button_scan);
         VCard vCard  = VCard.getVCard(getApplicationContext());
@@ -86,42 +100,85 @@ public class ContactExchange extends AppCompatActivity {
         size = height > width ? width : height;
         size = Math.round(0.9F * size);
 
-        // Steffi: QR Droid als Ziel des Intends festlegen
-        Intent qrDroid = new Intent("la.droid.qr.encode");
-        // Steffi: Text für den QR-Code festlegen
-        qrDroid.putExtra("la.droid.qr.code", qrCode);
-        qrDroid.putExtra("la.droid.qr.image", true);
-        // Steffi: Größe des QR-Codes festlegen
-        qrDroid.putExtra("la.droid.qr.size", size );
-        // Steffi: Intend abschicken und Ergebnis abwarten
-        try {
-            startActivityForResult(qrDroid, ACTIVITY_RESULT_QR_DRDROID_ENCODE);
-        } catch (ActivityNotFoundException activity) {
+        if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, QR_READ_STORAGE);
+        } else {
+
+            // Steffi: QR Droid als Ziel des Intends festlegen
+            Intent qrDroid = new Intent("la.droid.qr.encode");
+            // Steffi: Text für den QR-Code festlegen
+            qrDroid.putExtra("la.droid.qr.code", qrCode);
+            qrDroid.putExtra("la.droid.qr.image", true);
+            // Steffi: Größe des QR-Codes festlegen
+            qrDroid.putExtra("la.droid.qr.size", size);
+            // Steffi: Intend abschicken und Ergebnis abwarten
+            try {
+                startActivityForResult(qrDroid, ACTIVITY_RESULT_QR_DRDROID_ENCODE);
+            } catch (ActivityNotFoundException activity) {
+            }
+
+            //Set action to button
+            button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //Create a new Intent to send to QR Droid
+                    Intent qrDroid = new Intent("la.droid.qr.scan"); //Set action "la.droid.qr.scan"
+
+                    //Check whether a complete or displayable result is needed
+                    //Notify we want complete results (default is FALSE)
+                    qrDroid.putExtra("la.droid.qr.complete", true);
+
+                    //Send intent and wait result
+                    try {
+                        startActivityForResult(qrDroid, ACTIVITY_RESULT_QR_DRDROID_SCAN);
+                    } catch (ActivityNotFoundException activity) {
+                        // Services.qrDroidRequired(Scan.this);
+                    }
+                }
+            });
+
+            showHelpMessage();
+        }
+    }
+
+    // Steffi: Überprüfung, ob die Rechte gegeben wurden oder nicht.
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            // Steffi: Prüfung, ob Rechte für externen Speicher gewährt wurden oder nicht
+            case QR_READ_STORAGE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Wenn gewährt, fahre fort
+                } else {
+                    // wenn nicht gewährt, dann breche ab
+                    Toast.makeText(this, "Please grant external storage permission to use this app", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(ContactExchange.this, ConversationActivity.class);
+                    startActivity(intent);
+                }
+        }
+    }
+
+    private void showHelpMessage() {
+
+        helpText = (TextView) findViewById(R.id.helpTextView);
+        String infoMessage = "";
+
+        switch (scanHelp) {
+            case 1:
+                infoMessage = "2. Jetzt diesen QR-Code scannen lassen";
+                break;
+            case 2:
+                infoMessage = "3. Ein letztes Mal den anderen QR-Code scannen";
+                break;
+            case 0:
+            default:
+                infoMessage = "1. Einen der QR-Codes scannen";
+                break;
         }
 
-        //Set action to button
-        button.setOnClickListener( new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Create a new Intent to send to QR Droid
-                Intent qrDroid = new Intent("la.droid.qr.scan"); //Set action "la.droid.qr.scan"
-
-                //Check whether a complete or displayable result is needed
-                //Notify we want complete results (default is FALSE)
-                qrDroid.putExtra("la.droid.qr.complete", true);
-
-                //Send intent and wait result
-                try {
-                    startActivityForResult(qrDroid, ACTIVITY_RESULT_QR_DRDROID_SCAN);
-                } catch (ActivityNotFoundException activity) {
-                    // Services.qrDroidRequired(Scan.this);
-                }
-            }
-        });
-
-
-
-
+        helpText.setText(infoMessage);
     }
 
     @Override
@@ -145,7 +202,7 @@ public class ContactExchange extends AppCompatActivity {
                     String mobileNumber = stringResults[0];
                     Context context = this; // getApplicationContext();
 
-                    // Wenn 3 Werte übermittelt wurden, dann muss FIngerprint vorhanden sein als letzter Eintrag
+                    // Wenn 3 Werte übermittelt wurden, dann muss Fingerprint vorhanden sein als letzter Eintrag
                     if (stringResults.length == 3 && !stringResults[2].isEmpty()) {
                         String qrFingerprint = stringResults[2];
 

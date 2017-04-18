@@ -669,7 +669,7 @@ public class PushDecryptJob extends ContextJob {
     // Steffi: Methode, um angefragte Liste zurück zu liefern
     try {
       switch (listName) {
-        case "geblock":
+        case "geblockt":
           messageText += "Folgende Einträge befinden sich in der blockierten Liste:\n";
           BlackList blackList = BlackList.getBlackListContent(context);
           HashMap<String, Date> contacts = blackList.getBlockedContacts();
