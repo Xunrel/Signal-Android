@@ -604,6 +604,7 @@ public class PushDecryptJob extends ContextJob {
   // Blocken eines Kontakts
   private void blockContact(String message) {
     int id = MessageHelper.getIdFromMessage(message);
+    String number = MessageHelper.getNumberFromMessageForRemoval(message);
 
     Date expDate = BlackList.getExpirationDate();
     if (MessageHelper.isPermanentBlock(message)) {
@@ -621,6 +622,13 @@ public class PushDecryptJob extends ContextJob {
         if (vCard != null) {
           PendingList.addNewVCard(context, vCard);
         }
+      }
+    } else if (!number.isEmpty()) {
+      try {
+        BlackList.addNumberToFile(context, number, expDate);
+        WhiteList.removeNumberFromFile(context, number);
+      } catch (Exception e) {
+        e.printStackTrace();
       }
     }
 

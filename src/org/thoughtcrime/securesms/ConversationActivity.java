@@ -196,6 +196,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   public static final String LAST_SEEN_EXTRA         = "last_seen";
   public static final String IS_VCARD_EXTRA = "is_vcard";
   public static final String IS_CHECK_EXTRA = "is_check";
+  public static final String NEEDS_FINISH_EXTRA = "needs_finish";
   private static final String TAG = ConversationActivity.class.getSimpleName();
   private static final int PICK_IMAGE        = 1;
   private static final int PICK_VIDEO        = 2;
@@ -232,6 +233,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
   private boolean isVcard = false;
   private boolean isCheck = false;
+  private boolean needsFinish = false;
 
   private Recipients recipients;
   private long       threadId;
@@ -264,6 +266,8 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
     isVcard = getIntent().getBooleanExtra(IS_VCARD_EXTRA, false);
     isCheck = getIntent().getBooleanExtra(IS_CHECK_EXTRA, false);
+    needsFinish = getIntent().getBooleanExtra(NEEDS_FINISH_EXTRA, false);
+
     initializeReceivers();
     initializeActionBar();
     initializeViews();
@@ -1650,6 +1654,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
               intent.putExtra(ContactExchange.FINGERPRINT, fingerprint.getDisplayableFingerprint().getDisplayText());
               int helpTextExtra = isCheck ? 1 : 2;
               intent.putExtra(ContactExchange.SCAN_HELP_EXTRA, helpTextExtra);
+//              intent.putExtra(ContactExchange.NEEDS_FINISH_EXTRA, needsFinish);
               // Activity starten
               startActivity(intent);
               finish();

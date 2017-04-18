@@ -58,7 +58,7 @@ public final class MessageHelper {
     public static String getNumberFromMessageForRemoval(String message) {
         String[] messageParts = getMessageParts(message);
         String number = "";
-        if (messageParts.length > 1) {
+        if (messageParts.length > 1 && messageParts[1].startsWith("+")) {
             number = messageParts[1];
         }
         return number;
