@@ -11,15 +11,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by  on 17.03.2017.
- */
 
 /**
  * Repräsentiert die Liste der geblockten Kontakte
  */
 public class BlackList {
-    // Steffi: Anzahl Tage, bis der Kontakt aus der Blacklist entfernt werden kann
+    // Steffi: Anzahl der Tage, bis der Kontakt aus der Blacklist entfernt werden kann
     private static final Integer EXPIRATION_TIME = 14;
     // Steffi: (Key)String ist mobileNumber, (Value)Date ist Ablaufdatum
     private HashMap<String, Date> blockedContacts;
@@ -54,7 +51,7 @@ public class BlackList {
     }
 
     /**
-     * Methode um ein Ablaufdatum für die Blacklist zu erhalten
+     * Methode, um ein Ablaufdatum für die Blacklist zu erhalten
      * @return Liefert ein Date-Objekt zurück, welches Anzahl der EXPIRATION_TIME in Tagen in der Zukunft liegt.
      */
     public static Date getExpirationDate() {

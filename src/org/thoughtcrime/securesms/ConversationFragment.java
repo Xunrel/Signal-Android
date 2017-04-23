@@ -229,8 +229,6 @@ public class ConversationFragment extends Fragment
     } else {
       MessageRecord messageRecord = messageRecords.iterator().next();
 
-      // TODO Steffi: Hier werden die korrekten Buttons angezeigt für eine Nachricht
-
       menu.findItem(R.id.menu_context_resend).setVisible(messageRecord.isFailed());
       menu.findItem(R.id.menu_context_save_attachment).setVisible(!actionMessage                     &&
                                                                   messageRecord.isMms()              &&

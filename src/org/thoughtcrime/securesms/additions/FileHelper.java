@@ -9,9 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-/**
- * Created by on 13.03.2017.
- */
+
 
 /**
  * Hilfs-Klasse um die Listen auf dem System des Handys zu verwalten.

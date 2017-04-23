@@ -264,9 +264,9 @@ public class RegistrationService extends Service {
 
     TextSecurePreferences.setWebsocketRegistered(this, true);
 
-    // TODO: Hier wird die eigene Identity in der DB gespeichert
+    // Steffi: Hier wird die eigene Identity in der DB gespeichert
     DatabaseFactory.getIdentityDatabase(this).saveIdentity(self.getRecipientId(), identityKey.getPublicKey());
-    // TODO: Update der Kontaktliste
+    // Steffi: Update der Kontaktliste
     DirectoryHelper.refreshDirectory(this, accountManager, number);
 
     if (supportsGcm) {

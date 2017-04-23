@@ -1,8 +1,5 @@
 package org.thoughtcrime.securesms.additions;
 
-/**
- * Created by  on 13.03.2017.
- */
 
 /**
  * Abstrakte Klasse zur Definition von Kontakten

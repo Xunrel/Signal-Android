@@ -7,9 +7,6 @@ import org.thoughtcrime.securesms.util.JsonUtils;
 import java.io.IOException;
 import java.util.HashMap;
 
-/**
- * Created by  on 17.03.2017.
- */
 
 /**
  * Repräsentiert die Liste der erlaubten Kontakte

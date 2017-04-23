@@ -678,6 +678,7 @@ public class PushDecryptJob extends ContextJob {
     try {
       switch (listName) {
         case "geblockt":
+          BlackList.checkExpirationDates(context);
           messageText += "Folgende Einträge befinden sich in der blockierten Liste:\n";
           BlackList blackList = BlackList.getBlackListContent(context);
           HashMap<String, Date> contacts = blackList.getBlockedContacts();
@@ -694,6 +695,7 @@ public class PushDecryptJob extends ContextJob {
           }
           break;
         case "wartet":
+          PendingList.checkExpirationDates(context);
           messageText += "Folgende Einträge sind auf der Warteliste:\n";
           PendingList pendingList = PendingList.getPendingListContent(context);
           HashMap<Integer, VCard> pendingContacts = pendingList.getPendingVCards();
@@ -773,33 +775,33 @@ public class PushDecryptJob extends ContextJob {
     }.execute(message);
   }
 
-  private void validateSpecialMessage(String message, String source, Recipients recipients) {
-    if (MessageHelper.isDebugCommand(message)) {
-      HandleDebugCommand(message, source, recipients);
-    } else {
-      HandleCommand(message, source, recipients);
-    }
-  }
+//  private void validateSpecialMessage(String message, String source, Recipients recipients) {
+//    if (MessageHelper.isDebugCommand(message)) {
+//      HandleDebugCommand(message, source, recipients);
+//    } else {
+//      HandleCommand(message, source, recipients);
+//    }
+//  }
 
-  private void HandleDebugCommand(String message, String source, Recipients recipients) {
-    String code = MessageHelper.getDebugCommand(message);
+//  private void HandleDebugCommand(String message, String source, Recipients recipients) {
+//    String code = MessageHelper.getDebugCommand(message);
+//
+//    switch (code) {
+//      case "warte":
+//        addToPendingList(message);
+//        break;
+//      default:
+//        break;
+//    }
+//  }
 
-    switch (code) {
-      case "warte":
-        addToPendingList(message);
-        break;
-      default:
-        break;
-    }
-  }
-
-  private void addToPendingList(String message) {
-    String mobileNumber = MessageHelper.getNumberForDebug(message);
-    String firstName = MessageHelper.getFirstNameForDebug(message);
-    String lastName = MessageHelper.getLastNameForDebug(message);
-    VCard newVCard = new VCard(firstName, lastName, mobileNumber);
-    PendingList.addNewVCard(context, newVCard);
-  }
+//  private void addToPendingList(String message) {
+//    String mobileNumber = MessageHelper.getNumberForDebug(message);
+//    String firstName = MessageHelper.getFirstNameForDebug(message);
+//    String lastName = MessageHelper.getLastNameForDebug(message);
+//    VCard newVCard = new VCard(firstName, lastName, mobileNumber);
+//    PendingList.addNewVCard(context, newVCard);
+//  }
 
   private void HandleCommand(String message, String source, Recipients recipients) {
     String code = MessageHelper.getCommandFromMessage(message);
@@ -856,7 +858,22 @@ public class PushDecryptJob extends ContextJob {
 //        vCardString = vCardString.replace("|fpf", "").trim();
 //      }
       try {
+        PendingList.checkExpirationDates(context);
+        BlackList.checkExpirationDates(context);
+
         VCard vCard = JsonUtils.fromJson(vCardString, VCard.class);
+
+        // Ist die Nummer schon in der BlackList vorhanden, verwerfe die Anfrage
+        if (BlackList
+                .getBlackListContent(context)
+                .isInBlackList(vCard.getMobileNumber())) return;
+
+        // Ist die Nummer schon in der WhiteList vorhanden, verwerfe die Anfrage
+        if (WhiteList
+                .getWhiteListContent(context)
+                .isInWhiteList(vCard.getMobileNumber())) return;
+
+
         int result = PendingList.addNewVCard(context, vCard);
         if (result > -1) sendPendingToParents(context, vCard, result);
       } catch (IOException ioe) {
@@ -887,7 +904,7 @@ public class PushDecryptJob extends ContextJob {
     if (isFromParents(source)) {
       if (isSpecialMessage(body)) {
         // Prüfe Nachricht auf SpecialCode und verarbeite diesen dann
-        validateSpecialMessage(body, source, recipients);
+        HandleCommand(body, source, recipients);
         // Nachricht droppen:
         return;
       }
@@ -903,7 +920,7 @@ public class PushDecryptJob extends ContextJob {
 //      handleExpirationUpdate(masterSecret, envelope, message, Optional.<Long>absent());
     }
 
-    // Steffi: wenn gruppen info vorhanden ist, dann Nachricht erstmal verwerfen
+    // Steffi: wenn Gruppeninfo vorhanden ist, dann Nachricht erstmal verwerfen
     if (message.getGroupInfo().isPresent()) {
 //      byte[] groupId = message.getGroupInfo().get().getGroupId();
 //
@@ -931,7 +948,7 @@ public class PushDecryptJob extends ContextJob {
                                                                 message.getGroupInfo(),
                                                                 message.getExpiresInSeconds() * 1000);
 
-      // Steffi: Hier wird die Nachricht schlussendlich angezeigt
+      // Steffi: Hier wird die Nachricht angezeigt
       textMessage = new IncomingEncryptedMessage(textMessage, body);
       Optional<InsertResult> insertResult = database.insertMessageInbox(masterSecret, textMessage);
 

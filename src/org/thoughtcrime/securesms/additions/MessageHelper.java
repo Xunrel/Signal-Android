@@ -1,8 +1,5 @@
 package org.thoughtcrime.securesms.additions;
 
-/**
- * Created by  on 17.03.2017.
- */
 
 /**
  * Hilfs-Klasse um Spezial-Kommandos aus einer Nachricht zu interpretieren.
@@ -16,7 +13,6 @@ public final class MessageHelper {
     // "!@ new NUMBER DISPLAYNAME"
     // "!@ list LISTNAME"
     // "!@ help"
-    // TODO Steffi:
     // "!@ remove Number"
 
     /**

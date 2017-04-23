@@ -11,9 +11,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by  on 17.03.2017.
- */
 
 /**
  * Repräsentiert die Liste der ausstehenden Kontakte

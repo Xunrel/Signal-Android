@@ -112,9 +112,7 @@ public class ContactsDatabase {
 
           Log.w(TAG, "Adding number: " + registeredNumber);
           addedNumbers.add(registeredNumber);
-          // TODO Steffi: systemContactInfo.get().number nutzen um DisplayNamen zu identifizieren
           addTextSecureRawContact(operations, account, systemContactInfo.get().number,
-                  // TODO Steffi: statt 'systemContactInfo.get().name' wird name aus der whitelist genutzt
                   displayname, systemContactInfo.get().id,
                                   true);
         } else {
@@ -126,7 +124,7 @@ public class ContactsDatabase {
                     displayname = registeredNumber;
                 }
                 addTextSecureRawContact(operations, account, numberKey,
-                        // TODO Steffi: statt 'systemContactInfo.get().name' wird name aus der whitelist genutzt
+                        // Steffi: statt 'systemContactInfo.get().name' wird Name aus der WhiteList genutzt
                         displayname, 0,
                         true);
             }
@@ -145,7 +143,7 @@ public class ContactsDatabase {
       } else if (!currentContactEntry.getValue().isVoiceSupported()) {
         Log.w(TAG, "Adding voice support: " + currentContactEntry.getKey());
         addContactVoiceSupport(operations, currentContactEntry.getKey(), currentContactEntry.getValue().getId());
-        // TODO Steffi: statt 'currentContactEntry.getValue().getRawDisplayName()' wird name aus der whitelist genutzt
+        // Steffi: statt 'currentContactEntry.getValue().getRawDisplayName()' wird der Name aus der WhiteList genutzt
       } else if (!Util.isStringEquals(currentContactEntry.getValue().getRawDisplayName(),
                                       currentContactEntry.getValue().getAggregateDisplayName()))
       {

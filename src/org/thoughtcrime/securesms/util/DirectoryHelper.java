@@ -45,7 +45,7 @@ public class DirectoryHelper {
 
   private static final String TAG = DirectoryHelper.class.getSimpleName();
 
-  // TODO Steffi: Aktualisierung der Kontaktliste
+  // Steffi: Aktualisierung der Kontaktliste
   public static void refreshDirectory(@NonNull Context context, @Nullable MasterSecret masterSecret)
       throws IOException
   {
@@ -64,7 +64,7 @@ public class DirectoryHelper {
     }
   }
 
-  // TODO Steffi: Hier werden die Kontakte erneuert
+  // Steffi: Hier werden die Kontakte erneuert
   public static @NonNull RefreshResult refreshDirectory(@NonNull Context context,
                                                         @NonNull SignalServiceAccountManager accountManager,
                                                         @NonNull String localNumber)
@@ -78,13 +78,12 @@ public class DirectoryHelper {
     VCard child = JsonUtils.fromJson(vCard, VCard.class);
     List<ContactTokenDetails> activeTokensToRemove = new ArrayList<>();
 
-    // TODO Steffi: use the following lines to read from whitelist
+    // Steffi: whitelist auslesen
     WhiteList whiteList = WhiteList.getWhiteListContent(context);
 
     if (activeTokens != null) {
       for (ContactTokenDetails activeToken : activeTokens) {
         for (String number : whiteList.getContactList().keySet())
-          // TODO Steffi: refactor this to check against whiteListNumbers
           if (number.equals(activeToken.getNumber())) {
             eligibleContactNumbers.remove(activeToken.getNumber());
             activeToken.setNumber(activeToken.getNumber());
@@ -107,7 +106,7 @@ public class DirectoryHelper {
       }
 
       directory.setNumbers(activeTokens, eligibleContactNumbers);
-      // TODO Steffi: Update der Kontakt DB Tabelle
+      // Steffi: Update der Kontakt DB Tabelle
       return updateContactsDatabase(context, localNumber, activeTokens, true);
     }
 
@@ -129,7 +128,6 @@ public class DirectoryHelper {
       if (details.isPresent()) {
         directory.setNumber(details.get(), true);
 
-        // TODO Steffi: whiteList & blackList überprüfen
         RefreshResult result = updateContactsDatabase(context, localNumber, details.get());
 
         if (!result.getNewUsers().isEmpty() && TextSecurePreferences.isMultiDevice(context)) {

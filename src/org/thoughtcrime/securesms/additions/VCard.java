@@ -8,9 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 
-/**
- * Created by  on 13.03.2017.
- */
 
 // Steffi:
 
@@ -46,15 +43,15 @@ public class VCard extends Contact {
         this.expirationDate = expirationDate;
     }
 
-    /**
-     * Prüf-Method, ob VCard abgelaufen ist
-     *
-     * @param dateToCheck Datum, gegen das geprüft werden soll
-     * @return TRUE, wenn das Ablaufdatum der VCard überschritten wurde, ansonsten FALSE.
-     */
-    public boolean isExpired(Date dateToCheck) {
-        return this.expirationDate.before(dateToCheck);
-    }
+//    /**
+//     * Prüf-Method, ob VCard abgelaufen ist
+//     *
+//     * @param dateToCheck Datum, gegen das geprüft werden soll
+//     * @return TRUE, wenn das Ablaufdatum der VCard überschritten wurde, ansonsten FALSE.
+//     */
+//    public boolean isExpired(Date dateToCheck) {
+//        return this.expirationDate.before(dateToCheck);
+//    }
 
     public ArrayList<ParentsContact> getParents() {
         return parents;

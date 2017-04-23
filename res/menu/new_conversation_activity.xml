@@ -10,8 +10,8 @@
     <!--<item android:title="@string/text_secure_normal__menu_new_group"-->
     <!--android:id="@+id/menu_new_group" />-->
 
-    <item
+    <!--<item
         android:id="@+id/menu_invite"
-        android:title="@string/text_secure_normal__invite_friends"/>
+        android:title="@string/text_secure_normal__invite_friends"/>-->
 
 </menu>

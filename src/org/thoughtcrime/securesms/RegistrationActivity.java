@@ -147,12 +147,12 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
     // Steffi:
     // Hinzufügen der ChangeListener
-    this.childFirstName.addTextChangedListener(new NumberChangedListener());
-    this.childLastName.addTextChangedListener(new NumberChangedListener());
+//    this.childFirstName.addTextChangedListener(new NumberChangedListener());
+//    this.childLastName.addTextChangedListener(new NumberChangedListener());
     this.parentsCountryCode.addTextChangedListener(new ParentsCountryCodeChangedListener());
     this.parentsNumber.addTextChangedListener(new NumberChangedListener());
-    this.parentFirstName.addTextChangedListener(new NumberChangedListener());
-    this.parentLastName.addTextChangedListener(new NumberChangedListener());
+//    this.parentFirstName.addTextChangedListener(new NumberChangedListener());
+//    this.parentLastName.addTextChangedListener(new NumberChangedListener());
 
     if (getIntent().getBooleanExtra("cancel_button", false)) {
       this.skipButton.setVisibility(View.VISIBLE);
@@ -310,10 +310,8 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
       // Steffi: Erstellung der notwendigen Listen
       createFiles(self);
-      // TODO Steffi: Ändern des DisplayNamens der Eltern zu Mama und/oder Papa
       // Mobilnummer des angegebenen Eltern-Kontaktes wird direkt der Whitelist hinzugefügt
       WhiteList.addNumberToFile(self, e164parentNumber, pDisplayname);
-      // TODO Steffi: Füge ersten Parent-Kontakt in die DB hinzu
       createVCard(self, personalVCard);
 
       PlayServicesStatus gcmStatus = checkPlayServices(self);

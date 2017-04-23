@@ -1,8 +1,5 @@
 package org.thoughtcrime.securesms.additions;
 
-/**
- * Created by  on 13.03.2017.
- */
 
 /**
  * Definiert einen Eltern-Kontakt eines Kindes

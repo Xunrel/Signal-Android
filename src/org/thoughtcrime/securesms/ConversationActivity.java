@@ -1668,8 +1668,8 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
           @Override
           public void onFailure(ExecutionException e) {
-            // TODO Steffi: Was passiert, wenn Fingerprint nicht ermittelt werden konnte?
-            Log.w(TAG, e);
+            e.printStackTrace();
+            Log.e(TAG, "Error while checking fingerprint");
           }
         });
 
