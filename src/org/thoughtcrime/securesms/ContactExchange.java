@@ -85,23 +85,6 @@ public class ContactExchange extends AppCompatActivity {
         // Steffi: Permissions schon bei der Installation bzw. Registrierung einholen zB checkSelfPermission(Manifest.permission.QR_READ_STORAGE);
 
         final Button scanButton = (Button) findViewById(R.id.button_scan);
-        VCard vCard  = VCard.getVCard(getApplicationContext());
-        String localNumber = vCard.getMobileNumber().trim();
-        GregorianCalendar d = new GregorianCalendar();
-        String qrCode = String.format("%1$s|%2$s", localNumber, d.getTime().toString());
-
-        // Prüfen, ob Fingerprint vorhanden, wenn ja, dann in QR Code einarbeiten
-        if (fingerprint != null && !fingerprint.isEmpty()) {
-            qrCode += String.format("|%s", fingerprint);
-        }
-
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        int height = displayMetrics.heightPixels;
-        int width = displayMetrics.widthPixels;
-
-        size = height > width ? width : height;
-        size = Math.round(0.9F * size);
 
         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -109,20 +92,7 @@ public class ContactExchange extends AppCompatActivity {
                     new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, QR_READ_STORAGE);
         } else {
 
-            // Steffi: QR Droid als Ziel des Intends festlegen
-            Intent qrDroid = new Intent("la.droid.qr.encode");
-            //Text für den QR-Code festlegen
-            qrDroid.putExtra("la.droid.qr.code", qrCode);
-            qrDroid.putExtra("la.droid.qr.image", true);
-            // Größe des QR-Codes festlegen
-            qrDroid.putExtra("la.droid.qr.size", size);
-            // Intend abschicken und Ergebnis abwarten
-            try {
-                startActivityForResult(qrDroid, ACTIVITY_RESULT_QR_DROID_ENCODE);
-            } catch (ActivityNotFoundException activity) {
-                activity.printStackTrace();
-                Log.e(TAG, "Error while encoding qrCode");
-            }
+            updateQrCode(null);
 
             scanButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -141,6 +111,51 @@ public class ContactExchange extends AppCompatActivity {
 
             showHelpMessage();
         }
+    }
+
+    private void showLoadingAnimation(View view) {
+
+    }
+
+    private void stopLoadingAnimation() {
+
+    }
+
+    private void updateQrCode(String fingerprint) {
+
+        VCard vCard = VCard.getVCard(getApplicationContext());
+        String localNumber = vCard.getMobileNumber().trim();
+        GregorianCalendar d = new GregorianCalendar();
+        String qrCode = String.format("%1$s|%2$s", localNumber, d.getTime().toString());
+
+        // Prüfen, ob Fingerprint vorhanden, wenn ja, dann in QR Code einarbeiten
+        if (fingerprint != null && !fingerprint.isEmpty()) {
+            qrCode += String.format("|%s", fingerprint);
+        }
+
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        int height = displayMetrics.heightPixels;
+        int width = displayMetrics.widthPixels;
+
+        size = height > width ? width : height;
+        size = Math.round(0.9F * size);
+
+        // Steffi: QR Droid als Ziel des Intends festlegen
+        Intent qrDroid = new Intent("la.droid.qr.encode");
+        //Text für den QR-Code festlegen
+        qrDroid.putExtra("la.droid.qr.code", qrCode);
+        qrDroid.putExtra("la.droid.qr.image", true);
+        // Größe des QR-Codes festlegen
+        qrDroid.putExtra("la.droid.qr.size", size);
+        // Intend abschicken und Ergebnis abwarten
+        try {
+            startActivityForResult(qrDroid, ACTIVITY_RESULT_QR_DROID_ENCODE);
+        } catch (ActivityNotFoundException activity) {
+            activity.printStackTrace();
+            Log.e(TAG, "Error while encoding qrCode");
+        }
+        stopLoadingAnimation();
     }
 
     // Steffi: Überprüfung, ob die Rechte gegeben wurden oder nicht.
@@ -204,6 +219,7 @@ public class ContactExchange extends AppCompatActivity {
                 // Nummer aus dem ersten Item des Arrays nutzen, um vCard zu versenden
                 if (stringResults[0] != null) {
                     String mobileNumber = stringResults[0];
+                    showLoadingAnimation(null);
 
                     // Wenn 3 Werte übermittelt wurden, dann muss Fingerprint vorhanden sein als letzter Eintrag
                     if (stringResults.length >= 3 && !stringResults[2].isEmpty()) {
@@ -212,7 +228,9 @@ public class ContactExchange extends AppCompatActivity {
 
                         checkFingerprint(mobileNumber, qrFingerprint);
                     } else {
-                        sendCheckMessage(mobileNumber);
+//                        sendCheckMessage(mobileNumber);
+                        final MasterSecret masterSecret = KeyCachingService.getMasterSecret(this);
+                        getFingerprint(getApplicationContext(), mobileNumber, masterSecret);
                     }
                 }
             }
@@ -285,6 +303,51 @@ public class ContactExchange extends AppCompatActivity {
                 Log.e(TAG, "Error checking fingerprint");
             }
         });
+    }
+
+    // Wird niemals außerhalb der AsyncMethode aufgerufen werden können
+    private void getFingerprint(final Context context, String remoteNumber, MasterSecret masterSecret) {
+
+        // Steffi: remotenumber = Nummer des Empfängers ohne Leerzeichen!
+        final String remNumber = remoteNumber.replace(" ", "");
+        // Eigene Nummer
+        final String localNumber = TextSecurePreferences.getLocalNumber(context);
+        // Eigener IdentityKey
+        final IdentityKey localIdentity = IdentityKeyUtil.getIdentityKey(context);
+        // Empfänger als Recipient
+        final Recipient recipient = RecipientFactory.getRecipientsFromString(context, remoteNumber, true).getPrimaryRecipient();
+
+        // Utility Methode um IdentityKey des Empfängers zu ermitteln
+        IdentityUtil.getRemoteIdentityKey(context, masterSecret, recipient).addListener(new ListenableFuture.Listener<Optional<IdentityKey>>() {
+            @Override
+            public void onSuccess(Optional<IdentityKey> result) {
+                // Sobald IdentityKey des Empfängers ermittelt wurde
+                if (result.isPresent()) {
+                    // Generiere fingerprint
+                    Fingerprint fingerprint = new NumericFingerprintGenerator(5200).createFor(localNumber, localIdentity,
+                            remNumber, result.get());
+                    updateQrCode(fingerprint.getDisplayableFingerprint().getDisplayText());
+                    // Activity für QR Code mit eingearbeiteten Fingerprint
+//                    Intent intent = new Intent(context, ContactExchange.class);
+//                    // Ermittelten Fingerprint an die Activity übergeben
+//                    intent.putExtra(ContactExchange.FINGERPRINT, fingerprint.getDisplayableFingerprint().getDisplayText());
+////                    int helpTextExtra = isCheck ? 1 : 2;
+////                    intent.putExtra(ContactExchange.SCAN_HELP_EXTRA, helpTextExtra);
+//                    intent.putExtra(ContactExchange.NEEDS_FINISH_EXTRA, needsFinish);
+////                    intent.putExtra(ContactExchange.LAST_STATE_EXTRA, getIntent().getIntExtra(LAST_SCAN_STATE_EXTRA, 0));
+//                    // Activity starten
+//                    startActivity(intent);
+//                    finish();
+                }
+            }
+
+            @Override
+            public void onFailure(ExecutionException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Error while checking fingerprint");
+            }
+        });
+
     }
 
     private void sendVCard(String mobileNumber) {
